@@ -6,6 +6,7 @@ from typing import List, Optional
 from backend.database import database, contexts, comments, embedding_mapping
 from backend.services.model_router import get_response
 from backend.services.summarization_service import summarize_text
+from backend.routes.context import CreateCommentRequest
 import logging
 import asyncio
 
@@ -114,6 +115,46 @@ async def create_comment(thread_id: str, comment: CommentCreateRequest):
         logging.error(f"Error creating comment in thread {thread_id}: {e}")
         raise HTTPException(status_code=500, detail="Failed to create comment.")
 
+@router.put("/comments/{comment_id}/overwrite", response_model=CommentResponse)
+async def overwrite_comment(comment_id: int, request: CreateCommentRequest):
+    """
+    Overwrite an existing comment's text, flags, and other metadata.
+    """
+    try:
+        # Verify that the comment exists
+        comment_query = comments.select().where(comments.c.id == comment_id)
+        existing_comment = await database.fetch_one(comment_query)
+        if not existing_comment:
+            logging.error(f"Comment with id {comment_id} not found.")
+            raise HTTPException(status_code=404, detail="Comment not found.")
+
+        # Update the comment
+        update_query = comments.update().where(comments.c.id == comment_id).values(
+            text=request.text,
+            flags=request.flags if hasattr(request, "flags") else existing_comment["flags"],
+            model_name=request.model_name or existing_comment["model_name"]
+        )
+        await database.execute(update_query)
+
+        # Fetch the updated comment
+        updated_comment = await database.fetch_one(
+            comments.select().where(comments.c.id == comment_id)
+        )
+
+        return CommentResponse(
+            id=updated_comment["id"],
+            thread_id=updated_comment["thread_id"],
+            parent_id=updated_comment["parent_id"],
+            text=updated_comment["text"],
+            flags=updated_comment["flags"],
+            approvals=updated_comment["approvals"],
+            model_name=updated_comment["model_name"]
+        )
+    except HTTPException as he:
+        raise he
+    except Exception as e:
+        logging.error(f"Error overwriting comment {comment_id}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to overwrite comment.")
 
 
 @router.post("/threads/{thread_id}/generate-response", response_model=CommentResponse)
@@ -129,10 +170,13 @@ async def generate_response(thread_id: str, request: GenerateResponseRequest, pa
             logging.error(f"Thread with id {thread_id} not found.")
             raise HTTPException(status_code=404, detail="Thread not found.")
         
-        # Fetch all comments in the thread to build the prompt
+        # Fetch comments to build the prompt
         if parent_comment_id:
             # Fetch the specific parent comment
-            parent_comment_query = comments.select().where(comments.c.id == parent_comment_id, comments.c.thread_id == thread_id)
+            parent_comment_query = comments.select().where(
+                comments.c.id == parent_comment_id,
+                comments.c.thread_id == thread_id
+            )
             parent_comment = await database.fetch_one(parent_comment_query)
             if not parent_comment:
                 logging.error(f"Parent comment with id {parent_comment_id} not found in thread {thread_id}.")
@@ -151,8 +195,9 @@ async def generate_response(thread_id: str, request: GenerateResponseRequest, pa
                 raise HTTPException(status_code=404, detail="No comments available for generating a response.")
             
             # Concatenate all comments
-            full_conversation = "\n".join([f"User: {c.text}" if c.parent_id is None else f"{c.model_name or 'AI'}: {c.text}" for c in thread_comments])
-            
+            full_conversation = "\n".join(
+                [f"User: {c.text}" if c.parent_id is None else f"{c.model_name or 'AI'}: {c.text}" for c in thread_comments]
+            )
             # Summarize the conversation to manage prompt length
             summarized_prompt = summarize_text(full_conversation)
         
@@ -163,31 +208,55 @@ async def generate_response(thread_id: str, request: GenerateResponseRequest, pa
         if not response_text.strip():
             logging.error("AI response is empty.")
             raise HTTPException(status_code=500, detail="AI response generation failed.")
-        
-        # Insert the AI response as a new comment with model_name
-        insert_query = comments.insert().values(
-            thread_id=thread_id,
-            parent_id=parent_comment_id,
-            text=response_text,  # Either full text or summarized text
-            flags=1,  # Indicates AI-generated comment
-            approvals=0,
-            model_name=request.model_name,
-            hidden=False
-        )
-        ai_comment_id = await database.execute(insert_query)
-        
-        # Fetch the AI-generated comment
-        ai_comment = await database.fetch_one(comments.select().where(comments.c.id == ai_comment_id))
-        
-        return CommentResponse(
-            id=ai_comment["id"],
-            thread_id=ai_comment["thread_id"],
-            parent_id=ai_comment["parent_id"],
-            text=ai_comment["text"],
-            flags=ai_comment["flags"],
-            approvals=ai_comment["approvals"],
-            model_name=ai_comment["model_name"]  # Include model_name in response
-        )
+
+        # Overwrite the placeholder comment if it exists
+        if parent_comment_id:
+            update_query = comments.update().where(comments.c.id == parent_comment_id).values(
+                text=response_text,
+                flags=1,  # Indicating AI-generated
+                model_name=request.model_name
+            )
+            await database.execute(update_query)
+
+            # Fetch the updated comment
+            updated_comment = await database.fetch_one(
+                comments.select().where(comments.c.id == parent_comment_id)
+            )
+
+            return CommentResponse(
+                id=updated_comment["id"],
+                thread_id=updated_comment["thread_id"],
+                parent_id=updated_comment["parent_id"],
+                text=updated_comment["text"],
+                flags=updated_comment["flags"],
+                approvals=updated_comment["approvals"],
+                model_name=updated_comment["model_name"]
+            )
+        else:
+            # Create a new comment if no placeholder exists
+            insert_query = comments.insert().values(
+                thread_id=thread_id,
+                parent_id=parent_comment_id,
+                text=response_text,
+                flags=1,  # Indicates AI-generated comment
+                approvals=0,
+                model_name=request.model_name,
+                hidden=False
+            )
+            ai_comment_id = await database.execute(insert_query)
+
+            # Fetch the AI-generated comment
+            ai_comment = await database.fetch_one(comments.select().where(comments.c.id == ai_comment_id))
+            
+            return CommentResponse(
+                id=ai_comment["id"],
+                thread_id=ai_comment["thread_id"],
+                parent_id=ai_comment["parent_id"],
+                text=ai_comment["text"],
+                flags=ai_comment["flags"],
+                approvals=ai_comment["approvals"],
+                model_name=ai_comment["model_name"]
+            )
     except HTTPException as he:
         raise he
     except Exception as e:

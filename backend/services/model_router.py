@@ -7,6 +7,7 @@ import faiss
 from backend.config import OPENAI_API_KEY
 import logging 
 from transformers import AutoTokenizer
+import time
 
 # Initialize local LLM pipeline (e.g., GPT-2) with correct pad_token_id
 local_llm = pipeline("text-generation", model="gpt2", pad_token_id=50256)
@@ -138,6 +139,7 @@ def get_local_llm_response(prompt: str, model: str = "gpt2") -> str:
     Get response from a local Hugging Face LLM.
     """
     # Truncate the prompt if necessary
+    time.sleep(2)
     return "This is a local response"
     truncated_prompt = truncate_prompt(prompt)
     

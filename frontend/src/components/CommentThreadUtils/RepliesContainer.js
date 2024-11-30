@@ -1,20 +1,9 @@
-// frontend/src/components/RepliesContainer.js
-
-// frontend/src/components/RepliesContainer.js
+// RepliesContainer.js
 
 import React from "react";
 import CommentThread from "../CommentThread";
 
 function RepliesContainer({ replies, onCommentDeleted, onCommentCreated }) {
-  const styles = {
-    repliesContainer: {
-      marginTop: "1rem",
-      marginLeft: "1rem",
-    },
-  };
-
-  
-
   return (
     <div style={styles.repliesContainer}>
       {replies.map((reply) => (
@@ -22,14 +11,18 @@ function RepliesContainer({ replies, onCommentDeleted, onCommentCreated }) {
           key={reply.id}
           comment={reply}
           onCommentDeleted={onCommentDeleted}
-          onCommentCreated={onCommentCreated}
+          onCommentCreated={onCommentCreated} // Ensure it's passed down
         />
       ))}
     </div>
   );
 }
 
+const styles = {
+  repliesContainer: {
+    marginTop: "1rem",
+    marginLeft: "1rem",
+  },
+};
 
-
-export default RepliesContainer;
-
+export default React.memo(RepliesContainer);

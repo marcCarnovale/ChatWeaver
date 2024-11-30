@@ -79,9 +79,7 @@ function CommentDisplay({
         e.currentTarget.style.backgroundColor = "#f1f1f1";
       }}
       onMouseLeave={(e) => {
-        e.currentTarget.style.backgroundColor = isCollapsed
-          ? "#f9f9f9"
-          : "#fff";
+        e.currentTarget.style.backgroundColor = isCollapsed ? "#f9f9f9" : "#fff";
       }}
     >
       {/* Invisible Clickable Overlay */}
@@ -107,7 +105,14 @@ function CommentDisplay({
       {/* Comment Content */}
       <div style={styles.commentContent}>
         {/* Conditionally render summary or full comment based on isCollapsed */}
-        <SanitizedMarkdown content={isCollapsed ? summaryContent : markdownContent} />
+        {comment.text === "Thinking..." ? (
+          <div style={{ display: "flex", alignItems: "center" }}>
+            <span className="rotating-circle" />
+            Thinking...
+          </div>
+        ) : (
+          <SanitizedMarkdown content={isCollapsed ? summaryContent : markdownContent} />
+        )}
 
         {/* Display AI Model Name if AI-generated and not already shown */}
         {comment.flags > 0 && comment.model_name && (
