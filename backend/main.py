@@ -24,7 +24,7 @@ logging.basicConfig(
 )
 
 # Initialize FastAPI app
-app = FastAPI(title="ThreadChat Backend")
+app = FastAPI(title="Chatweaver Backend")
 
 # Include API routes
 app.include_router(context_router, prefix="/api", tags=["Context"])
@@ -100,4 +100,4 @@ def root():
     Returns:
         dict: Health check message.
     """
-    return {"message": "ThreadChat Backend is running"}
+    return {"message": "Chatweaver Backend is running"}

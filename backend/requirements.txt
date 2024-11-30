@@ -5,4 +5,5 @@ databases
 python-dotenv
 beautifulsoup4
 sentence-transformers
-faiss
+faiss-cpu
+openai

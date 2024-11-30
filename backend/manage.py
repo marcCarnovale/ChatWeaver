@@ -1,5 +1,5 @@
 """
-Management Script for ThreadChat
+Management Script for Chatweaver
 
 This script provides command-line functionality to parse HTML conversations and store them in the database.
 """
@@ -12,7 +12,7 @@ from pathlib import Path
 from backend.database import init_db
 
 async def main():
-    parser = argparse.ArgumentParser(description="ThreadChat Management Script")
+    parser = argparse.ArgumentParser(description="Chatweaver Management Script")
     parser.add_argument("--parse-html", type=str, help="Path to ChatGPT HTML file to parse and store.")
     parser.add_argument("--init-db", action="store_true", help="Initialize the database.")
     

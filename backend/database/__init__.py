@@ -7,7 +7,7 @@ from sqlalchemy import MetaData, Table, Column, Integer, String, ForeignKey, Tex
 from sqlalchemy import Column, Integer, String, ForeignKey, Text, UniqueConstraint, Boolean
 import json
 
-DATABASE_URL = "sqlite+aiosqlite:///./threadchat.db"
+DATABASE_URL = "sqlite+aiosqlite:///./chatweaver.db"
 
 # Initialize Async Database and Metadata
 metadata = MetaData()
