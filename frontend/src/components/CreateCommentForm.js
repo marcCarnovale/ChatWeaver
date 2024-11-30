@@ -21,106 +21,94 @@ function CreateCommentForm({ threadId, onCommentCreated }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
+  
     if (!commentText.trim()) {
       setError("Comment text is required.");
       return;
     }
-
-    setLoading(true);
-    setError(null);
-
+  
+    setLoading(true); // Start loading
+    setError(null);   // Clear previous errors
+  
     try {
-      // Submit the user's comment
+      // Submit the top-level comment
       const response = await axios.post(`/threads/${threadId}/comments`, {
         parent_id: null, // Top-level comment
         text: commentText,
       });
-
+  
       const newComment = response.data;
       console.log("New Comment Created:", newComment); // Debugging
+  
+      // Notify the parent about the new comment
       onCommentCreated(newComment);
+  
+      // Clear the input field
       setCommentText("");
-
-      // If a model is selected (not 'None'), generate AI response
+  
+      // Handle AI response if a model is selected
       if (selectedModel !== "None") {
-        // Create a temporary placeholder comment
-        const tempId = uuidv4(); // Generate a unique temporary ID
-        const tempComment = {
-          id: tempId,
-          thread_id: threadId,
-          parent_id: newComment.id,
-          text: "Thinking...",
-          flags: 0,
-          approvals: 0,
-          model_name: selectedModel.split(" ", 2)[1] || "AI", // Extract model name or default to 'AI'
-          isTemporary: true, // Flag to identify placeholder
-          replies: [],
-        };
-
-        // Append the temporary comment
-        onCommentCreated(tempComment);
-
-        // Correctly split the selectedModel into type and name
-        const [modelType, ...modelNameParts] = selectedModel.split(" ");
-        const modelName = modelNameParts.join(" ");
-
-        if (!modelType || !modelName) {
-          setError("Invalid model selection.");
-          // Optionally remove the temporary comment if selection is invalid
-          // Implement this if desired
-          setLoading(false);
-          return;
-        }
-
-        const generateResponsePayload = {
-          model_type: modelType.toLowerCase(), // 'openai' or 'local'
-          model_name: modelName.toLowerCase(), // e.g., 'gpt-4' or 'gpt2'
-        };
-
         try {
+          // Create a temporary placeholder comment
+          const tempId = uuidv4(); // Generate a unique temporary ID
+          const tempComment = {
+            id: tempId,
+            thread_id: threadId,
+            parent_id: newComment.id,
+            text: "Thinking...",
+            flags: 0,
+            approvals: 0,
+            model_name: selectedModel.split(" ", 2)[1] || "AI",
+            isTemporary: true,
+            replies: [],
+          };
+  
+          onCommentCreated(tempComment); // Append temporary comment
+  
+          const [modelType, ...modelNameParts] = selectedModel.split(" ");
+          const modelName = modelNameParts.join(" ");
+  
+          if (!modelType || !modelName) {
+            throw new Error("Invalid model selection.");
+          }
+  
+          const generateResponsePayload = {
+            model_type: modelType.toLowerCase(),
+            model_name: modelName.toLowerCase(),
+          };
+  
           const aiResponse = await axios.post(
             `/threads/${threadId}/generate-response`,
             generateResponsePayload,
-            {
-              params: { parent_comment_id: newComment.id }, // Pass the correct parent_comment_id
-            }
+            { params: { parent_comment_id: newComment.id } }
           );
-
+  
           console.log("AI Response Received:", aiResponse.data); // Debugging
-
-          // Replace the temporary comment with the actual AI response
+  
+          // Replace the temporary comment with the final AI response
           onCommentCreated({
             ...aiResponse.data,
-            isTemporary: false, // Remove the temporary flag
+            isTemporary: false, // Mark as a finalized comment
             tempId, // Reference to the temporary comment
           });
-
-          setSelectedModel("None"); // Reset the dropdown to 'None'
+  
+          setSelectedModel("None"); // Reset the model selection
         } catch (aiErr) {
           console.error("Error generating AI response:", aiErr);
-          if (aiErr.response && aiErr.response.data && aiErr.response.data.detail) {
-            setError(aiErr.response.data.detail);
-          } else {
-            setError("Failed to generate AI response.");
-          }
-
-          // Optionally remove the temporary comment if AI generation fails
-          // Implement this if desired
-        } finally {
-          setLoading(false); // Stop loading indicator
+          setError(
+            aiErr.response?.data?.detail || "Failed to generate AI response."
+          );
         }
       }
     } catch (err) {
       console.error("Error creating comment:", err);
-      if (err.response && err.response.data && err.response.data.detail) {
-        setError(err.response.data.detail);
-      } else {
-        setError("Failed to create comment.");
-      }
-      setLoading(false);
+      setError(err.response?.data?.detail || "Failed to create comment.");
+    } finally {
+      setLoading(false); // Ensure loading stops regardless of success or failure
     }
   };
+  
+  
 
   return (
     <form onSubmit={handleSubmit} style={styles.form}>

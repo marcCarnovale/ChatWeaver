@@ -52,36 +52,63 @@ function ThreadDetailView() {
 
   // Function to handle adding new comments or AI responses
   const handleCommentCreated = (newComment) => {
-    if (newComment.remove) {
-      // Remove the temporary comment in case of an error
-      setComments((prevComments) =>
-        removeTemporaryComment(prevComments, newComment.id)
-      );
-      return;
-    }
-  
-    if (newComment.isTemporary) {
-      setComments((prevComments) => [...prevComments, newComment]);
-    } else if (newComment.tempId) {
-      setComments((prevComments) =>
-        replaceTemporaryComment(prevComments, newComment.tempId, newComment)
-      );
-    } else {
-      // Regular comment or AI response without tempId
-      if (!newComment.parent_id) {
-        // Top-level comment
-        setComments((prevComments) => [
-          ...prevComments,
-          { ...newComment, replies: [] },
-        ]);
-      } else {
-        // Reply to an existing comment
-        setComments((prevComments) =>
-          addReplyToComments(prevComments, newComment)
+    setComments((prevComments) => {
+      if (newComment.isTemporary) {
+        // Add the temporary comment at the appropriate place (top-level or nested)
+        return prevComments.map((comment) => {
+          // If this is the parent, add the temporary comment to its replies
+          if (comment.id === newComment.parent_id) {
+            return {
+              ...comment,
+              replies: [...(comment.replies || []), newComment],
+            };
+          }
+          return comment; // Return unchanged comments
+        });
+      } else if (newComment.tempId) {
+        // Replace the temporary comment with the actual AI response
+        return prevComments.map((comment) => {
+          // Check if the temporary comment is in top-level comments
+          if (comment.id === newComment.tempId) {
+            return {
+              ...newComment, // Replace with the AI response
+              isTemporary: false, // Ensure it's no longer marked as temporary
+            };
+          }
+          // Check if the temporary comment is inside replies
+          if (comment.replies && comment.replies.length > 0) {
+            return {
+              ...comment,
+              replies: comment.replies.map((reply) =>
+                reply.id === newComment.tempId
+                  ? {
+                      ...newComment, // Replace with the AI response
+                      isTemporary: false,
+                    }
+                  : reply
+              ),
+            };
+          }
+          return comment;
+        });
+      } else if (newComment.parent_id) {
+        // Add the new comment as a reply to its parent
+        return prevComments.map((comment) =>
+          comment.id === newComment.parent_id
+            ? {
+                ...comment,
+                replies: [...(comment.replies || []), newComment],
+              }
+            : comment
         );
+      } else {
+        // Add a regular top-level comment
+        return [...prevComments, newComment];
       }
-    }
+    });
   };
+  
+  
   
   const replaceTemporaryComment = (commentsList, tempId, actualComment) =>
     commentsList.map((comment) => {

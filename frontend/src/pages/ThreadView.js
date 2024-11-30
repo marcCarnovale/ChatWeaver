@@ -57,7 +57,7 @@ function ThreadView({ threadId }) {
         text: inputText,
       });
 
-      console.log("Create Comment Response:", createCommentResponse.data);
+      console.log("Create Comment Response 22:", createCommentResponse.data);
 
       // Optionally generate AI response
       if (generateAIResponse) {
