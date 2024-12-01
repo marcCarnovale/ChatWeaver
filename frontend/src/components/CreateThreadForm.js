@@ -17,70 +17,65 @@ function CreateThreadForm({ categoryId, onThreadCreated }) {
     }
   }, [error]);
 
-const handleCreateThread = async (e) => {
-  e.preventDefault();
-  if (!name.trim()) return;
-
-  setCreating(true);
-  setError(null);
-
-  try {
-    // Step 1: Create the thread
-    const threadResponse = await axios.post("/threads", {
-      name,
-      category_id: categoryId,
-      description,
-    });
-    const threadData = threadResponse.data;
-
-    console.log("Create Thread Response:", threadData);
-
-    // Step 2: Create the root-level (invisible) comment with retry logic
-    const MAX_RETRIES = 3;
-    const RETRY_DELAY = 1000; // 1 second
-    let rootCommentResponse;
-    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-      try {
-        rootCommentResponse = await axios.post(`/threads/${threadData.id}/comments`, {
-          parent_id: null,
-          text: "Root Comment",
-        });
-        break; // Success, exit loop
-      } catch (rootErr) {
-        if (attempt === MAX_RETRIES) {
-          console.error("Error creating root comment after retries:", rootErr);
-          throw new Error("Failed to create the root comment after multiple attempts.");
-        }
-        console.warn(`Retrying root comment creation (attempt ${attempt})...`);
-        await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY));
-      }
+  const handleCreateThread = async (e) => {
+    e.preventDefault();
+    if (!name.trim()) {
+      setError("Thread name is required.");
+      return;
     }
 
-    const rootComment = rootCommentResponse.data;
+    setCreating(true);
+    setError(null);
 
-    // Step 3: Combine thread data with root comment ID
-    const threadWithRootComment = {
-      ...threadData,
-      rootCommentId: rootComment.id,
-    };
+    try {
+      // Step 1: Create the thread
+      const threadResponse = await axios.post("/threads", {
+        name,
+        category_id: categoryId,
+        description,
+      });
+      const threadData = threadResponse.data;
 
-    // Notify parent with thread data including root comment ID
-    onThreadCreated(threadWithRootComment);
+      console.log("Create Thread Response:", threadData);
 
-    // Clear form fields
-    setName("");
-    setDescription("");
-  } catch (err) {
-    console.error("Error creating thread or root comment:", err);
-    setError(
-      err.message.includes("root comment")
-        ? "Failed to create the root comment for the thread."
-        : "Failed to create thread. Ensure the category exists."
-    );
-  } finally {
-    setCreating(false);
-  }
-};
+      // Extract the correct thread ID
+      const threadId = threadData.id || threadData.thread_id || threadData.threadId;
+      if (!threadId) {
+        throw new Error("Thread ID not found in response.");
+      }
+
+      // Step 2: Create the root-level (invisible) comment using the correct endpoint
+      const rootCommentResponse = await axios.post(`/threads/${threadId}/comments`, {
+        parent_id: null, // Root comment
+        text: "Root Comment", // Use a placeholder or empty text if supported
+      });
+
+      const rootComment = rootCommentResponse.data;
+
+      console.log("Root Comment Created:", rootComment.id);
+
+      // Step 3: Combine thread data with root comment ID
+      const threadWithRootComment = {
+        ...threadData,
+        rootCommentId: rootComment.id,
+        comments: [rootComment], // Initialize with root comment
+      };
+
+      // Step 4: Notify parent with thread data including root comment ID
+      onThreadCreated(threadWithRootComment);
+
+      // Step 5: Clear form fields
+      setName("");
+      setDescription("");
+    } catch (err) {
+      console.error("Error creating thread or root comment:", err);
+      setError(
+        err.response?.data?.detail || "Failed to create thread. Ensure the category exists."
+      );
+    } finally {
+      setCreating(false);
+    }
+  };
 
   
 
