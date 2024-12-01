@@ -1,4 +1,4 @@
-/* frontend/styles/index.css */
+/* frontend/src/styles/index.css */
 
 body {
   margin: 0;
@@ -13,13 +13,11 @@ a {
 /* AI-generated comments */
 .ai-comment {
   background-color: #e0f7fa; /* Light cyan */
-  /* Removed border-left to avoid conflict with clickable-vertical-line */
 }
 
 /* User comments */
 .user-comment {
   background-color: #f9f9f9; /* Light gray */
-  /* Removed border-left to avoid conflict with clickable-vertical-line */
 }
 
 /* Optional: Hover effects or transitions */
@@ -27,21 +25,26 @@ a {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
-
 /* Clickable Overlay */
 .clickable-overlay {
   position: absolute;
   top: 0;
   left: 0;
-  width: 20px; /* Adjust based on border-left width */
+  width: 20px; /* Only left 20px is clickable */
   height: 100%;
   cursor: pointer;
   background-color: transparent;
-  z-index: 1;
+  z-index: 2; /* Ensure it's above other elements */
   display: flex;
   justify-content: center;
+  align-items: flex-start; /* Align chevron to the top */
+  padding-top: 0.5rem; /* Align chevron vertically */
+  transition: background-color 0.3s;
 }
 
+.clickable-overlay:hover {
+  background-color: rgba(0, 123, 255, 0.1); /* Light blue on hover */
+}
 
 /* Loader Styles */
 .loader {
@@ -53,6 +56,11 @@ a {
   animation: spin 1s linear infinite;
 }
 
+/* Spin Animation */
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
 
 /* Fade-Out Animation for Error Messages */
 @keyframes fadeOut {
@@ -61,31 +69,14 @@ a {
   100% { opacity: 0; }
 }
 
-/* Clickable Overlay */
-.clickable-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 20px; /* Adjust based on border-left width */
-  height: 100%;
-  cursor: pointer;
-  background-color: transparent;
-  z-index: 1;
-  display: flex;
-}
-
-.clickable-overlay:hover {
-  background-color: rgba(0, 0, 0, 0.05); /* Light hover effect */
-}
-
 /* Chevron Icon */
 .chevron {
   pointer-events: none; /* So that click is handled by the parent div */
   color: #555; /* Adjust color as needed */
   font-size: 0.8rem; /* Adjust size as needed */
-  top: 0;
-  width: 20px;
 }
+
+/* Spinner */
 .spinner {
   border: 4px solid rgba(0, 0, 0, 0.1);
   width: 24px;
@@ -96,6 +87,7 @@ a {
   margin-right: 8px;
 }
 
+/* Thinking Indicator */
 .thinking {
   display: flex;
   align-items: center;
@@ -104,7 +96,7 @@ a {
   font-style: italic;
 }
 
-
+/* Rotating Circle */
 .rotating-circle {
   border: 2px solid #ccc;
   border-top: 2px solid #007bff;
@@ -115,15 +107,3 @@ a {
   display: inline-block;
   margin-right: 8px;
 }
-
-@keyframes spin {
-  0% {
-    transform: rotate(0deg);
-  }
-  100% {
-    transform: rotate(360deg);
-  }
-}
-
-
-

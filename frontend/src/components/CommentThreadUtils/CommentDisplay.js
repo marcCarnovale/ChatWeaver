@@ -16,7 +16,7 @@ function CommentDisplay({
   const styles = {
     comment: {
       display: "flex",
-      alignItems: "flex-start",
+      alignItems: "flex-start", // Align items to the start
       padding: "0.5rem",
       borderRadius: "0.25rem",
       transition: "background-color 0.3s, border-left-color 0.3s",
@@ -38,11 +38,9 @@ function CommentDisplay({
       zIndex: 2, // Ensure it's above other elements
       display: "flex",
       justifyContent: "center",
-      alignItems: "center",
+      alignItems: "flex-start", // Align chevron to the top
+      paddingTop: "0.5rem", // Align chevron vertically with text
       transition: "background-color 0.3s",
-    },
-    clickableOverlayHover: {
-      backgroundColor: "rgba(0, 123, 255, 0.1)", // Light blue on hover
     },
     chevron: {
       color: "#555",
@@ -104,12 +102,6 @@ function CommentDisplay({
           }
         }}
         style={styles.clickableOverlay}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.backgroundColor = styles.clickableOverlayHover.backgroundColor;
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.backgroundColor = styles.clickableOverlay.backgroundColor;
-        }}
       >
         <span className="chevron" style={styles.chevron}>
           {isCollapsed ? <FaChevronDown /> : <FaChevronUp />}
