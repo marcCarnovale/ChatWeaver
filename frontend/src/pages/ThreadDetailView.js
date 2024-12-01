@@ -172,6 +172,9 @@ function ThreadDetailView() {
       <p>{thread.description}</p>
       <div style={styles.commentsSection}>
         <h3>Comments</h3>
+      <CreateCommentForm threadId={threadId} onCommentCreated={handleCommentCreated} />
+
+      <div> <p></p></div>
         {comments.length === 0 ? (
           <p>No comments yet. Be the first to comment!</p>
         ) : (
@@ -184,7 +187,6 @@ function ThreadDetailView() {
           ))
         )}
       </div>
-      <CreateCommentForm threadId={threadId} onCommentCreated={handleCommentCreated} />
     </div>
   );
 }

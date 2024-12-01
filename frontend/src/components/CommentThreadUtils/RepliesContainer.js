@@ -1,17 +1,20 @@
-// RepliesContainer.js
+// frontend/src/components/CommentThreadUtils/RepliesContainer.js
 
 import React from "react";
+import PropTypes from "prop-types";
 import CommentThread from "../CommentThread";
 
 function RepliesContainer({ replies, onCommentDeleted, onCommentCreated }) {
+  console.log("Rendering RepliesContainer with replies:", replies);
+  
   return (
-    <div style={styles.repliesContainer}>
+    <div style={styles.container}>
       {replies.map((reply) => (
         <CommentThread
           key={reply.id}
           comment={reply}
           onCommentDeleted={onCommentDeleted}
-          onCommentCreated={onCommentCreated} // Ensure it's passed down
+          onCommentCreated={onCommentCreated}
         />
       ))}
     </div>
@@ -19,10 +22,16 @@ function RepliesContainer({ replies, onCommentDeleted, onCommentCreated }) {
 }
 
 const styles = {
-  repliesContainer: {
+  container: {
+    marginLeft: "2rem",
     marginTop: "1rem",
-    marginLeft: "1rem",
   },
 };
 
-export default React.memo(RepliesContainer);
+RepliesContainer.propTypes = {
+  replies: PropTypes.array.isRequired,
+  onCommentDeleted: PropTypes.func.isRequired,
+  onCommentCreated: PropTypes.func.isRequired,
+};
+
+export default RepliesContainer;

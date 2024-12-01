@@ -1,4 +1,4 @@
-// frontend/src/components/CommentDisplay.js
+// frontend/src/components/CommentThreadUtils/CommentDisplay.js
 
 import React from "react";
 import { FaChevronDown, FaChevronUp } from "react-icons/fa";
@@ -25,18 +25,26 @@ function CommentDisplay({
       borderLeftColor: comment.flags > 0 ? "#28a745" : "#007bff",
       borderLeftWidth: "4px",
       borderLeftStyle: "solid",
+      marginBottom: "0.5rem",
     },
     clickableOverlay: {
       position: "absolute",
       top: 0,
       left: 0,
-      width: "100%",
+      width: "20px", // Only left 20px is clickable
       height: "100%",
       cursor: "pointer",
-      zIndex: 1,
+      backgroundColor: "transparent",
+      zIndex: 2, // Ensure it's above other elements
+      display: "flex",
+      justifyContent: "center",
+      alignItems: "center",
+      transition: "background-color 0.3s",
+    },
+    clickableOverlayHover: {
+      backgroundColor: "rgba(0, 123, 255, 0.1)", // Light blue on hover
     },
     chevron: {
-      pointerEvents: "none",
       color: "#555",
       fontSize: "0.8rem",
     },
@@ -60,15 +68,15 @@ function CommentDisplay({
   };
 
   const markdownContent = `**${
-    comment.flags > 0 ? comment.model_name || "AI" : "User"
+    comment.flags > 0 ? (comment.model_name || "AI") : "User"
   }:** ${comment.text}`;
 
   const summaryContent = comment.summary
     ? `**${
-        comment.flags > 0 ? comment.model_name || "AI" : "User"
+        comment.flags > 0 ? (comment.model_name || "AI") : "User"
       }:** ${comment.summary}`
     : `**${
-        comment.flags > 0 ? comment.model_name || "AI" : "User"
+        comment.flags > 0 ? (comment.model_name || "AI") : "User"
       }:** ${comment.text.substring(0, 100)}...`;
 
   return (
@@ -82,7 +90,7 @@ function CommentDisplay({
         e.currentTarget.style.backgroundColor = isCollapsed ? "#f9f9f9" : "#fff";
       }}
     >
-      {/* Invisible Clickable Overlay */}
+      {/* Clickable Overlay - only left 20px */}
       <div
         className="clickable-overlay"
         onClick={toggleCollapse}
@@ -96,8 +104,14 @@ function CommentDisplay({
           }
         }}
         style={styles.clickableOverlay}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.backgroundColor = styles.clickableOverlayHover.backgroundColor;
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.backgroundColor = styles.clickableOverlay.backgroundColor;
+        }}
       >
-        <span className="chevron">
+        <span className="chevron" style={styles.chevron}>
           {isCollapsed ? <FaChevronDown /> : <FaChevronUp />}
         </span>
       </div>
@@ -107,8 +121,8 @@ function CommentDisplay({
         {/* Conditionally render summary or full comment based on isCollapsed */}
         {comment.text === "Thinking..." ? (
           <div style={{ display: "flex", alignItems: "center" }}>
-            <span className="rotating-circle" />
-            Thinking...
+            <span className="rotating-circle"></span>
+            <p>Thinking...</p>
           </div>
         ) : (
           <SanitizedMarkdown content={isCollapsed ? summaryContent : markdownContent} />

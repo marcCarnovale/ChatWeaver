@@ -104,7 +104,7 @@ function CreateCommentForm({ threadId, rootCommentId, onCommentCreated }) {
         placeholder="Enter your comment..."
       />
 
-      <div style={styles.modelSelector}>
+      {/* <div style={styles.modelSelector}>
         <label>
           Select Model:
           <select
@@ -118,7 +118,7 @@ function CreateCommentForm({ threadId, rootCommentId, onCommentCreated }) {
             <option value="Local GPT-2">Local GPT-2</option>
           </select>
         </label>
-      </div>
+      </div> */}
 
       <button type="submit" style={styles.button} disabled={loading}>
         {loading ? "Submitting..." : "Submit Comment"}

@@ -26,16 +26,21 @@
     useEffect(() => {
         setReplies(comment.replies || []); // Replace state directly
     }, [comment.replies]);
+
     
     const toggleCollapse = () => {
-        setIsCollapsed((prev) => !prev);
-    
-        if (!isCollapsed) {
-            console.log("Collapsing comment:", comment.id);
-        } else {
-            console.log("Expanding comment:", comment.id);
-        }
-    };
+      setIsCollapsed((prev) => {
+          const newState = !prev;
+          if (!newState) {
+              console.log("Expanding comment:", comment.id);
+              console.log("Replies tree:", replies);
+          } else {
+              console.log("Collapsing comment:", comment.id);
+          }
+          return newState;
+      });
+  };
+  
     
     
     // Handle error timeout
