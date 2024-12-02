@@ -9,6 +9,8 @@ import axios from "../utils/axiosConfig";
 function ThreadDetailView() {
   const { threadId } = useParams();
   const [thread, setThread] = useState(null);
+  const [rootCommentId, setRootCommentId] = useState(null);
+  const [rootComment, setRootComment] = useState(null);
   const [comments, setComments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -16,151 +18,112 @@ function ThreadDetailView() {
   // Auto-clear errors after 5 seconds
   useEffect(() => {
     if (error) {
-      const timer = setTimeout(() => setError(null), 5000); // 5 seconds
+      const timer = setTimeout(() => setError(null), 5000);
       return () => clearTimeout(timer);
     }
   }, [error]);
 
-  // Fetch thread details and comments on mount or when threadId changes
+  // Function to build a tree from a flat comments list
+  const buildCommentsTree = (comments) => {
+    const commentMap = {};
+    const roots = [];
+
+    // Initialize the map with comments and empty replies
+    comments.forEach((comment) => {
+      commentMap[comment.id] = { ...comment, replies: [] };
+    });
+
+    // Populate the replies based on parent_id
+    comments.forEach((comment) => {
+      if (comment.parent_id && commentMap[comment.parent_id]) {
+        commentMap[comment.parent_id].replies.push(commentMap[comment.id]);
+      } else {
+        roots.push(commentMap[comment.id]); // No parent means it's a root-level comment
+      }
+    });
+
+    return roots;
+  };
+
+  // Fetch thread details and comments, then build the tree
   useEffect(() => {
     const fetchThreadAndComments = async () => {
       setLoading(true);
       try {
         // Fetch thread details
-        const threadsResponse = await axios.get(`/threads/${threadId}`);
-        setThread(threadsResponse.data);
+        const threadResponse = await axios.get(`/threads/${threadId}`);
+        setThread(threadResponse.data);
 
-        // Fetch nested comments
-        const commentsResponse = await axios.get(`/get-comments/${threadId}`);
-        setComments(commentsResponse.data);
+        // Extract rootCommentId from thread data
+        const rootId = threadResponse.data.root_comment_id;
+        setRootCommentId(rootId);
+
+        // Fetch all comments for the thread (including nested replies)
+        const commentsResponse = await axios.get(`/threads/${threadId}/comments`);
+        const commentsList = commentsResponse.data;
+
+        // Build the comments tree
+        const commentsTree = buildCommentsTree(commentsList);
+
+        // Find the root comment in the tree
+        const root = commentsTree.find((comment) => comment.id === rootId);
+        if (root) {
+          setRootComment(root);
+          setComments(root.replies || []); // Set comments to root's replies
+        } else {
+          // If no root comment found, treat all top-level comments as roots
+          setRootComment(null);
+          setComments(commentsTree);
+        }
       } catch (err) {
         console.error("Error fetching thread or comments:", err);
-        const message =
-          err.response && err.response.data && err.response.data.detail
-            ? err.response.data.detail
-            : "Failed to load thread or comments.";
-        setError(message);
+        setError(err.response?.data?.detail || "Failed to load thread or comments.");
       } finally {
         setLoading(false);
       }
     };
 
-    if (threadId) {
-      fetchThreadAndComments();
-    }
+    fetchThreadAndComments();
   }, [threadId]);
 
-  // Function to handle adding new comments or AI responses
+  // Handle adding new comments or AI responses
   const handleCommentCreated = (newComment) => {
-    setComments((prevComments) => {
-      if (newComment.isTemporary) {
-        // Add the temporary comment at the appropriate place (top-level or nested)
-        return prevComments.map((comment) => {
-          // If this is the parent, add the temporary comment to its replies
+    if (newComment.parent_id === rootCommentId) {
+      // If the new comment is a direct reply to the root, add it to top-level comments
+      setComments((prevComments) => [...prevComments, newComment]);
+    } else {
+      // Otherwise, find the parent comment and add the reply recursively
+      const addReply = (commentsList) =>
+        commentsList.map((comment) => {
           if (comment.id === newComment.parent_id) {
             return {
               ...comment,
               replies: [...(comment.replies || []), newComment],
             };
-          }
-          return comment; // Return unchanged comments
-        });
-      } else if (newComment.tempId) {
-        // Replace the temporary comment with the actual AI response
-        return prevComments.map((comment) => {
-          // Check if the temporary comment is in top-level comments
-          if (comment.id === newComment.tempId) {
-            return {
-              ...newComment, // Replace with the AI response
-              isTemporary: false, // Ensure it's no longer marked as temporary
-            };
-          }
-          // Check if the temporary comment is inside replies
-          if (comment.replies && comment.replies.length > 0) {
+          } else if (comment.replies?.length) {
             return {
               ...comment,
-              replies: comment.replies.map((reply) =>
-                reply.id === newComment.tempId
-                  ? {
-                      ...newComment, // Replace with the AI response
-                      isTemporary: false,
-                    }
-                  : reply
-              ),
+              replies: addReply(comment.replies),
             };
           }
           return comment;
         });
-      } else if (newComment.parent_id) {
-        // Add the new comment as a reply to its parent
-        return prevComments.map((comment) =>
-          comment.id === newComment.parent_id
-            ? {
-                ...comment,
-                replies: [...(comment.replies || []), newComment],
-              }
-            : comment
-        );
-      } else {
-        // Add a regular top-level comment
-        return [...prevComments, newComment];
-      }
-    });
+
+      setComments((prevComments) => addReply(prevComments));
+    }
   };
-  
-  
-  
-  const replaceTemporaryComment = (commentsList, tempId, actualComment) =>
-    commentsList.map((comment) => {
-      if (comment.id === tempId) {
-        return { ...actualComment, replies: comment.replies || [] };
-      } else if (comment.replies && comment.replies.length > 0) {
-        return {
-          ...comment,
-          replies: replaceTemporaryComment(
-            comment.replies,
-            tempId,
-            actualComment
-          ),
-        };
-      }
-      return comment;
-    });
-  
-  const addReplyToComments = (commentsList, newReply) =>
-    commentsList.map((comment) => {
-      if (comment.id === newReply.parent_id) {
-        return {
-          ...comment,
-          replies: [...(comment.replies || []), { ...newReply, replies: [] }],
-        };
-      } else if (comment.replies && comment.replies.length > 0) {
-        return {
-          ...comment,
-          replies: addReplyToComments(comment.replies, newReply),
-        };
-      }
-      return comment;
-    });
-  
 
-  // Function to handle deletion of comments
+  // Handle comment deletion
   const handleCommentDeleted = (deletedCommentId) => {
-    console.log("Deleting comment with ID:", deletedCommentId); // Debugging
-    // Recursively remove the deleted comment from the comments tree
-    const removeComment = (commentsList) => {
-      return commentsList.filter((comment) => {
-        if (comment.id === deletedCommentId) {
-          return false;
-        }
-        if (comment.replies && comment.replies.length > 0) {
-          comment.replies = removeComment(comment.replies);
-        }
-        return true;
-      });
-    };
+    const removeComment = (commentsList) =>
+      commentsList
+        .filter((comment) => comment.id !== deletedCommentId)
+        .map((comment) => ({
+          ...comment,
+          replies: removeComment(comment.replies || []),
+        }));
 
-    setComments(removeComment(comments));
+    setComments((prevComments) => removeComment(prevComments));
   };
 
   if (loading) return <p>Loading thread and comments...</p>;
@@ -168,13 +131,23 @@ function ThreadDetailView() {
 
   return (
     <div style={styles.container}>
-      <h2>Thread: {thread.name}</h2>
-      <p>{thread.description}</p>
+      {/* Root Comment as Main Post */}
+      {rootComment && (
+        <div style={styles.rootCommentContainer}>
+          <h1>{thread.name}</h1>
+          <p>{thread.description}</p>
+          <p>{rootComment.text}</p>
+        </div>
+      )}
+
+      {/* Comments Section */}
       <div style={styles.commentsSection}>
         <h3>Comments</h3>
-      <CreateCommentForm threadId={threadId} onCommentCreated={handleCommentCreated} />
-
-      <div> <p></p></div>
+        <CreateCommentForm
+          threadId={threadId}
+          rootCommentId={rootCommentId}
+          onCommentCreated={handleCommentCreated}
+        />
         {comments.length === 0 ? (
           <p>No comments yet. Be the first to comment!</p>
         ) : (
@@ -183,6 +156,7 @@ function ThreadDetailView() {
               key={comment.id}
               comment={comment}
               onCommentDeleted={handleCommentDeleted}
+              onCommentCreated={handleCommentCreated}
             />
           ))
         )}
@@ -194,6 +168,13 @@ function ThreadDetailView() {
 const styles = {
   container: {
     padding: "1rem",
+  },
+  rootCommentContainer: {
+    marginBottom: "2rem",
+    padding: "1rem",
+    border: "1px solid #ddd",
+    borderRadius: "8px",
+    backgroundColor: "#f9f9f9",
   },
   commentsSection: {
     marginTop: "2rem",

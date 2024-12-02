@@ -122,7 +122,8 @@ async def get_threads(category_id: int):
                 thread_id=row["thread_id"],
                 name=row["text"],
                 category_id=row["category_id"],
-                description=None  # Adjust if you have a description field
+                description=None,  # Adjust if you have a description field,
+                root_comment_id=row["root_comment_id"]
             )
             for row in rows
         ]

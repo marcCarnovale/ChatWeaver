@@ -2,7 +2,7 @@
 
 import React from "react";
 import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
-import ThreadView from "./pages/ThreadView";
+// import ThreadView from "./pages/ThreadView";
 import SavedComments from "./pages/SavedComments";
 import NotFound from "./pages/NotFound";
 import CategoryView from "./pages/CategoryView";
@@ -26,7 +26,7 @@ function App() {
           </nav>
           <Breadcrumbs />
           <Routes>
-            <Route path="/" element={<ThreadView />} />
+            {/* <Route path="/" element={<ThreadView />} /> */}
             <Route path="/categories/:categoryId" element={<CategoryView />} />
             <Route path="/threads/:threadId" element={<ThreadDetailView />} /> {/* New Route */}
             <Route path="/saved-comments" element={<SavedComments />} />

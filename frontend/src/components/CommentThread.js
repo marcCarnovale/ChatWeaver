@@ -1,5 +1,3 @@
-// frontend/src/components/CommentThread.js
-
 import React, { useState, useEffect } from "react";
 import axios from "../utils/axiosConfig";
 import CommentDisplay from "./CommentThreadUtils/CommentDisplay";
@@ -7,11 +5,8 @@ import ActionButtons from "./CommentThreadUtils/ActionButtons";
 import ReplyForm from "./CommentThreadUtils/ReplyForm";
 import NewResponseModal from "./CommentThreadUtils/NewResponseModal";
 import LoadingIndicator from "./CommentThreadUtils/LoadingIndicator";
-import RepliesContainer from "./CommentThreadUtils/RepliesContainer";
 
 import { handleNewResponse } from "../utils/handleNewResponse";
-
-
 
 function CommentThread({ comment, onCommentDeleted, onCommentCreated }) {
   const [showReplyForm, setShowReplyForm] = useState(false);
@@ -25,23 +20,21 @@ function CommentThread({ comment, onCommentDeleted, onCommentCreated }) {
   const [hidden, setHidden] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
-  
+
   // Synchronize local replies state with comment.replies prop
   useEffect(() => {
     setReplies(comment.replies || []);
   }, [comment.replies]);
 
-  
   const toggleCollapse = () => {
     setIsCollapsed((prev) => {
-        const newState = !prev;
-        if (!newState) {
-            console.log("Expanding comment:", comment.id, "with replies:", replies);
-        }
-        return newState;
+      const newState = !prev;
+      if (!newState) {
+        console.log("Expanding comment:", comment.id, "with replies:", replies);
+      }
+      return newState;
     });
-};
-
+  };
 
   // Handle error timeout
   useEffect(() => {
@@ -172,16 +165,18 @@ function CommentThread({ comment, onCommentDeleted, onCommentCreated }) {
         />
       )}
 
-      {/* Loading Indicator */}
-      {isGenerating && <LoadingIndicator message="Generating AI response..." />}
-
-      {/* Nested Replies */}
+      {/* Recursively Render Replies */}
       {replies.length > 0 && !isCollapsed && (
-        <RepliesContainer
-          replies={replies}
-          onCommentDeleted={onCommentDeleted}
-          onCommentCreated={onCommentCreated}
-        />
+        <div style={styles.repliesContainer}>
+          {replies.map((reply) => (
+            <CommentThread
+              key={reply.id}
+              comment={reply}
+              onCommentDeleted={onCommentDeleted}
+              onCommentCreated={onCommentCreated}
+            />
+          ))}
+        </div>
       )}
     </div>
   );
@@ -193,6 +188,16 @@ const styles = {
     display: "flex",
     flexDirection: "column",
     marginBottom: "1rem",
+    padding: "1rem",
+    border: "1px solid #ddd",
+    borderRadius: "8px",
+    backgroundColor: "#f9f9f9",
+  },
+  repliesContainer: {
+    marginLeft: "2rem",
+    marginTop: "1rem",
+    borderLeft: "2px solid #ccc",
+    paddingLeft: "1rem",
   },
   error: {
     color: "red",
