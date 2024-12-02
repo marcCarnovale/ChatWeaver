@@ -5,7 +5,6 @@ import ActionButtons from "./CommentThreadUtils/ActionButtons";
 import ReplyForm from "./CommentThreadUtils/ReplyForm";
 import NewResponseModal from "./CommentThreadUtils/NewResponseModal";
 import LoadingIndicator from "./CommentThreadUtils/LoadingIndicator";
-
 import { handleNewResponse } from "../utils/handleNewResponse";
 
 function CommentThread({ comment, onCommentDeleted, onCommentCreated }) {
@@ -19,7 +18,6 @@ function CommentThread({ comment, onCommentDeleted, onCommentCreated }) {
   const [newResponseModel, setNewResponseModel] = useState("None");
   const [hidden, setHidden] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const [isGenerating, setIsGenerating] = useState(false);
 
   // Synchronize local replies state with comment.replies prop
   useEffect(() => {
@@ -27,32 +25,24 @@ function CommentThread({ comment, onCommentDeleted, onCommentCreated }) {
   }, [comment.replies]);
 
   const toggleCollapse = () => {
-    setIsCollapsed((prev) => {
-      const newState = !prev;
-      if (!newState) {
-        console.log("Expanding comment:", comment.id, "with replies:", replies);
-      }
-      return newState;
-    });
+    setIsCollapsed((prev) => !prev);
   };
 
   // Handle error timeout
   useEffect(() => {
     if (error) {
-      const timer = setTimeout(() => setError(null), 5000); // 5 seconds
+      const timer = setTimeout(() => setError(null), 5000);
       return () => clearTimeout(timer);
     }
   }, [error]);
 
-  // Handle Reply Submission
   const handleReply = async () => {
     if (!replyText.trim()) return;
 
-    setLoading(true); // Start loading
+    setLoading(true);
     setError(null);
 
     try {
-      // Submit the comment as a reply to this comment
       const response = await axios.post(`/threads/${comment.thread_id}/comments`, {
         parent_id: comment.id,
         text: replyText,
@@ -60,12 +50,10 @@ function CommentThread({ comment, onCommentDeleted, onCommentCreated }) {
 
       const newReply = response.data;
 
-      // Update replies and UI
       setReplies((prevReplies) => [...prevReplies, newReply]);
       setReplyText("");
       setShowReplyForm(false);
 
-      // Notify parent if applicable
       if (onCommentCreated) {
         onCommentCreated(newReply);
       }
@@ -73,24 +61,35 @@ function CommentThread({ comment, onCommentDeleted, onCommentCreated }) {
       console.error("Error submitting comment:", err);
       setError(err.response?.data?.detail || "Failed to submit comment.");
     } finally {
-      setLoading(false); // Stop loading, regardless of success or failure
+      setLoading(false);
     }
   };
 
-  // Handle Generating New Response
   const handleNewResponseWrapper = async () => {
-    await handleNewResponse({
-      threadId: comment.thread_id,
-      parentId: comment.id,
-      newResponseModel,
-      onCommentCreated,
-      setReplies,
-      setLoading,
-      setError,
-    });
+    // Close the modal immediately
+    setShowNewResponse(false);
+    
+    setLoading(true);
+    setError(null);
+  
+    try {
+      await handleNewResponse({
+        threadId: comment.thread_id,
+        parentId: comment.id,
+        newResponseModel,
+        onCommentCreated,
+        setReplies,
+        setLoading,
+        setError,
+      });
+    } catch (err) {
+      console.error("Error handling new response:", err);
+    } finally {
+      setLoading(false);
+    }
   };
+  
 
-  // Handle Actions (hide, delete, approve)
   const handleAction = async (action) => {
     try {
       await axios.post(`/comments/${comment.id}/action`, { action });
@@ -108,7 +107,6 @@ function CommentThread({ comment, onCommentDeleted, onCommentCreated }) {
 
   if (hidden) return null;
 
-  // Check if the comment is a placeholder
   if (comment.text === "Thinking...") {
     return (
       <div style={styles.commentContainer}>
@@ -119,7 +117,6 @@ function CommentThread({ comment, onCommentDeleted, onCommentCreated }) {
 
   return (
     <div style={styles.commentContainer}>
-      {/* Comment Display */}
       <CommentDisplay
         comment={comment}
         isCollapsed={isCollapsed}
@@ -128,21 +125,23 @@ function CommentThread({ comment, onCommentDeleted, onCommentCreated }) {
         onFlag={() => handleAction("hide")}
       />
 
-      {/* Action Buttons */}
+      {isCollapsed && replies.length > 0 && (
+        <div style={styles.replyCount} onClick={toggleCollapse}>
+          {`(${replies.length} ${replies.length === 1 ? "child" : "children"})`}
+        </div>
+      )}
+
       <ActionButtons
         showReplyForm={showReplyForm}
         toggleReplyForm={() => setShowReplyForm(!showReplyForm)}
         showNewResponse={showNewResponse}
         toggleNewResponse={() => setShowNewResponse(true)}
-        isGenerating={isGenerating}
         hidden={hidden}
         handleAction={handleAction}
       />
 
-      {/* Error Message */}
       {error && <p style={styles.error}>{error}</p>}
 
-      {/* Reply Form */}
       {showReplyForm && (
         <ReplyForm
           replyText={replyText}
@@ -154,7 +153,6 @@ function CommentThread({ comment, onCommentDeleted, onCommentCreated }) {
         />
       )}
 
-      {/* New Response Modal */}
       {showNewResponse && (
         <NewResponseModal
           newResponseModel={newResponseModel}
@@ -165,7 +163,6 @@ function CommentThread({ comment, onCommentDeleted, onCommentCreated }) {
         />
       )}
 
-      {/* Recursively Render Replies */}
       {replies.length > 0 && !isCollapsed && (
         <div style={styles.repliesContainer}>
           {replies.map((reply) => (
@@ -182,7 +179,6 @@ function CommentThread({ comment, onCommentDeleted, onCommentCreated }) {
   );
 }
 
-// Styles Object
 const styles = {
   commentContainer: {
     display: "flex",
@@ -202,6 +198,15 @@ const styles = {
   error: {
     color: "red",
     marginTop: "0.5rem",
+  },
+  replyCount: {
+    marginLeft: "1rem",
+    marginTop: "0.5rem",
+    fontSize: "0.9rem",
+    color: "#555",
+    cursor: "pointer",
+    borderLeft: "2px solid #ccc",
+    paddingLeft: "0.5rem",
   },
 };
 

@@ -87,31 +87,72 @@ function ThreadDetailView() {
   }, [threadId]);
 
   // Handle adding new comments or AI responses
-  const handleCommentCreated = (newComment) => {
-    if (newComment.parent_id === rootCommentId) {
-      // If the new comment is a direct reply to the root, add it to top-level comments
-      setComments((prevComments) => [...prevComments, newComment]);
-    } else {
-      // Otherwise, find the parent comment and add the reply recursively
-      const addReply = (commentsList) =>
-        commentsList.map((comment) => {
-          if (comment.id === newComment.parent_id) {
-            return {
-              ...comment,
-              replies: [...(comment.replies || []), newComment],
-            };
-          } else if (comment.replies?.length) {
-            return {
-              ...comment,
-              replies: addReply(comment.replies),
-            };
-          }
-          return comment;
-        });
-
-      setComments((prevComments) => addReply(prevComments));
+// Helper function to find and update a comment in the tree
+const updateCommentInTree = (commentsList, newComment) => {
+  return commentsList.map((comment) => {
+    if (comment.id === newComment.id) {
+      // Update the existing comment
+      return {
+        ...comment,
+        ...newComment,
+      };
+    } else if (comment.replies?.length) {
+      return {
+        ...comment,
+        replies: updateCommentInTree(comment.replies, newComment),
+      };
     }
-  };
+    return comment;
+  });
+};
+
+// Helper function to check if a comment exists in the tree
+const commentExistsInTree = (commentsList, commentId) => {
+  for (let comment of commentsList) {
+    if (comment.id === commentId) return true;
+    if (comment.replies?.length) {
+      if (commentExistsInTree(comment.replies, commentId)) return true;
+    }
+  }
+  return false;
+};
+
+const handleCommentCreated = (newComment) => {
+  setComments((prevComments) => {
+    const exists = commentExistsInTree(prevComments, newComment.id);
+
+    if (exists) {
+      // Update the existing comment
+      return updateCommentInTree(prevComments, newComment);
+    } else {
+      // Add new comment
+      if (newComment.parent_id === rootCommentId) {
+        // If the new comment is a direct reply to the root, add it to top-level comments
+        return [...prevComments, newComment];
+      } else {
+        // Otherwise, find the parent comment and add the reply recursively
+        const addReply = (commentsList) =>
+          commentsList.map((comment) => {
+            if (comment.id === newComment.parent_id) {
+              return {
+                ...comment,
+                replies: [...(comment.replies || []), newComment],
+              };
+            } else if (comment.replies?.length) {
+              return {
+                ...comment,
+                replies: addReply(comment.replies),
+              };
+            }
+            return comment;
+          });
+
+        return addReply(prevComments);
+      }
+    }
+  });
+};
+
 
   // Handle comment deletion
   const handleCommentDeleted = (deletedCommentId) => {

@@ -103,18 +103,18 @@ async def overwrite_comment(comment_id: int, request: CreateCommentRequest):
             logging.error(f"Comment with id {comment_id} not found.")
             raise HTTPException(status_code=404, detail="Comment not found.")
 
-        # Update the comment
-        update_query = comments.update().where(comments.c.id == comment_id).values(
-            text=request.text,
-            flags=request.flags if hasattr(request, "flags") else existing_comment["flags"],
-            model_name=request.model_name or existing_comment["model_name"]
-        )
+        # Update the comment with provided fields
+        update_values = {"text": request.text}
+        if request.flags is not None:
+            update_values["flags"] = request.flags
+        if request.model_name is not None:
+            update_values["model_name"] = request.model_name
+
+        update_query = comments.update().where(comments.c.id == comment_id).values(**update_values)
         await database.execute(update_query)
 
         # Fetch the updated comment
-        updated_comment = await database.fetch_one(
-            comments.select().where(comments.c.id == comment_id)
-        )
+        updated_comment = await database.fetch_one(comments.select().where(comments.c.id == comment_id))
 
         return CommentResponse(
             id=updated_comment["id"],
@@ -130,7 +130,6 @@ async def overwrite_comment(comment_id: int, request: CreateCommentRequest):
     except Exception as e:
         logging.error(f"Error overwriting comment {comment_id}: {e}")
         raise HTTPException(status_code=500, detail="Failed to overwrite comment.")
-
 
 @router.post("/threads/{thread_id}/generate-response", response_model=CommentResponse)
 async def generate_response(thread_id: str, request: GenerateResponseRequest, parent_comment_id: Optional[int] = None):

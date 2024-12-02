@@ -14,3 +14,23 @@ export const handleApiError = (err, setError, defaultMessage) => {
     }
   };
   
+
+  
+  /**
+ * Recursively builds a hierarchical structure from a dictionary of comments.
+ * @param {Object} commentMap - A dictionary of comments keyed by their IDs.
+ * @param {number|null} rootId - The ID of the root comment (null for top-level comments).
+ * @returns {Array} A nested array of comments with replies.
+ */
+export function buildCommentHierarchy(commentMap, rootId = null) {
+  const result = [];
+  Object.values(commentMap).forEach((comment) => {
+    if (comment.parent_id === rootId) {
+      result.push({
+        ...comment,
+        replies: buildCommentHierarchy(commentMap, comment.id),
+      });
+    }
+  });
+  return result;
+}

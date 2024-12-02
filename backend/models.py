@@ -63,15 +63,15 @@ class RetrieveContextRequest(BaseModel):
     k: int = 5
 
 class GenerateResponseRequest(BaseModel):
-    query: str
     model_type: str = "openai"  # 'openai' or 'local'
     model_name: str = "gpt-4"  # e.g., 'gpt-4', 'gpt-3.5-turbo'
-    parent_id: Optional[str] = None  # Updated to Optional to handle None
-
+    parent_id: Optional[int] = None  # Updated to Optional to handle None
 class CreateCommentRequest(BaseModel):
     thread_id: str
     parent_id: Optional[int] = None  # None for top-level comments
     text: str
+    flags: Optional[int] = None  # Optional for overwriting
+    model_name: Optional[str] = None  # Optional for overwriting
 
 
 
