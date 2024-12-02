@@ -1,11 +1,11 @@
 # backend/routes/threads.py
 
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Query
 from pydantic import BaseModel, Field
 from typing import List, Optional
 from backend.database import database, contexts, comments, embedding_mapping
 from backend.services.model_router import get_response
-from backend.services.summarization_service import summarize_text
+from backend.services.summarization_service import summarize_text_chain
 from backend.routes.context import CreateCommentRequest
 import logging
 import asyncio
@@ -132,8 +132,14 @@ async def overwrite_comment(comment_id: int, request: CreateCommentRequest):
         logging.error(f"Error overwriting comment {comment_id}: {e}")
         raise HTTPException(status_code=500, detail="Failed to overwrite comment.")
 
+
 @router.post("/threads/{thread_id}/generate-response", response_model=CommentResponse)
-async def generate_response(thread_id: str, request: GenerateResponseRequest, parent_comment_id: Optional[int] = None):
+async def generate_response(
+    thread_id: str,
+    request: GenerateResponseRequest,
+    request_comment_id: int = Query(..., alias="request_comment_id"),
+    parent_comment_id: int = Query(..., alias="parent_comment_id")
+):
     """
     Generate an AI response for a specific thread or comment, utilizing summarization to manage context length.
     """
@@ -146,38 +152,21 @@ async def generate_response(thread_id: str, request: GenerateResponseRequest, pa
             raise HTTPException(status_code=404, detail="Thread not found.")
         
         # Fetch comments to build the prompt
-        if parent_comment_id:
-            # Fetch the specific parent comment
-            parent_comment_query = comments.select().where(
-                comments.c.id == parent_comment_id,
-                comments.c.thread_id == thread_id
-            )
-            parent_comment = await database.fetch_one(parent_comment_query)
-            if not parent_comment:
-                logging.error(f"Parent comment with id {parent_comment_id} not found in thread {thread_id}.")
+        if request_comment_id and parent_comment_id:
+            # Fetch the comment chain based on parent_comment_id
+            comment_chain = await fetch_comment_chain(parent_comment_id, thread_id)
+
+            if not comment_chain:
+                logging.error(f"Comment chain ending in id {parent_comment_id} not found in thread {thread_id}.")
                 raise HTTPException(status_code=404, detail="Parent comment not found.")
             
-            # Build and summarize the prompt based on the parent comment
-            prompt_text = f"User: {parent_comment['text']}\n{parent_comment['model_name'] or 'AI'}:"
-            summarized_prompt = summarize_text(prompt_text)
+            summarized_prompt = summarize_text_chain(comment_chain)
         else:
-            # Fetch all comments for the thread
-            comments_query = comments.select().where(comments.c.thread_id == thread_id).order_by(comments.c.id)
-            thread_comments = await database.fetch_all(comments_query)
-            
-            if not thread_comments:
-                logging.error(f"No comments found in thread {thread_id}.")
-                raise HTTPException(status_code=404, detail="No comments available for generating a response.")
-            
-            # Concatenate all comments
-            full_conversation = "\n".join(
-                [f"User: {c.text}" if c.parent_id is None else f"{c.model_name or 'AI'}: {c.text}" for c in thread_comments]
-            )
-            # Summarize the conversation to manage prompt length
-            summarized_prompt = summarize_text(full_conversation)
+            raise HTTPException(status_code=400, detail="Both request_comment_id and parent_comment_id are required.")
         
         # Generate AI response using the specified model
         loop = asyncio.get_event_loop()
+        logging.info(f"Summarized Prompt is: {summarized_prompt}")
         response_text = await loop.run_in_executor(None, get_response, summarized_prompt, request.model_type, request.model_name)
         
         if not response_text.strip():
@@ -185,8 +174,8 @@ async def generate_response(thread_id: str, request: GenerateResponseRequest, pa
             raise HTTPException(status_code=500, detail="AI response generation failed.")
 
         # Overwrite the placeholder comment if it exists
-        if parent_comment_id:
-            update_query = comments.update().where(comments.c.id == parent_comment_id).values(
+        if request_comment_id:
+            update_query = comments.update().where(comments.c.id == request_comment_id).values(
                 text=response_text,
                 flags=1,  # Indicating AI-generated
                 model_name=request.model_name
@@ -195,7 +184,7 @@ async def generate_response(thread_id: str, request: GenerateResponseRequest, pa
 
             # Fetch the updated comment
             updated_comment = await database.fetch_one(
-                comments.select().where(comments.c.id == parent_comment_id)
+                comments.select().where(comments.c.id == request_comment_id)
             )
 
             return CommentResponse(
@@ -235,5 +224,28 @@ async def generate_response(thread_id: str, request: GenerateResponseRequest, pa
     except HTTPException as he:
         raise he
     except Exception as e:
-        logging.error(f"Error generating AI response for thread {thread_id}: {e}")
+        logging.error(f"Error generating AI response for thread {thread_id}: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Failed to generate AI response.")
+
+
+async def fetch_comment_chain(comment_id, thread_id):
+    """
+    Recursively fetches the entire chain of comments leading to the given comment_id.
+    """
+    comment_chain = []
+    current_comment_id = comment_id
+
+    while current_comment_id:
+        query = comments.select().where(
+            comments.c.id == current_comment_id,
+            comments.c.thread_id == thread_id
+        )
+        comment = await database.fetch_one(query)
+        if not comment:
+            break
+
+        # Insert at the beginning to maintain reverse chronological order
+        comment_chain.insert(0, comment)
+        current_comment_id = comment["parent_id"]
+
+    return comment_chain

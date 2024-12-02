@@ -139,8 +139,6 @@ def get_local_llm_response(prompt: str, model: str = "gpt2") -> str:
     Get response from a local Hugging Face LLM.
     """
     # Truncate the prompt if necessary
-    time.sleep(2)
-    return "This is a local response"
     truncated_prompt = truncate_prompt(prompt)
     
     response = local_llm(
@@ -155,6 +153,7 @@ def get_response(prompt: str, model_type: str = "openai", model_name: str = "gpt
     """
     Route prompt to the appropriate model.
     """
+    logging.info(prompt)
     if model_type == "openai":
         return get_openai_response(prompt, model=model_name)
     elif model_type == "local":

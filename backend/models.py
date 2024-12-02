@@ -66,8 +66,11 @@ class GenerateResponseRequest(BaseModel):
     model_type: str = "openai"  # 'openai' or 'local'
     model_name: str = "gpt-4"  # e.g., 'gpt-4', 'gpt-3.5-turbo'
     parent_id: Optional[int] = None  # Updated to Optional to handle None
+
+
 class CreateCommentRequest(BaseModel):
     thread_id: str
+    placeholder_comment_id: int
     parent_id: Optional[int] = None  # None for top-level comments
     text: str
     flags: Optional[int] = None  # Optional for overwriting

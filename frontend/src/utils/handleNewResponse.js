@@ -56,7 +56,9 @@ export const handleNewResponse = async ({
       text: "Thinking...",
     });
 
+    // Convert to camelCase if necessary
     const placeholderComment = { ...placeholderResponse.data, replies: [] };
+    console.log("Placeholder Comment:", placeholderComment);
 
     // Add the placeholder comment to the replies
     if (setReplies) {
@@ -76,7 +78,7 @@ export const handleNewResponse = async ({
     const aiResponse = await axios.post(
       `/threads/${threadId}/generate-response`,
       generateResponsePayload,
-      { params: { parent_comment_id: placeholderComment.id } }
+      { params: { request_comment_id: placeholderComment.id, parent_comment_id: placeholderComment.parent_id } } // Fixed field name
     );
 
     const updatedComment = {
