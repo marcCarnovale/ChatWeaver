@@ -23,52 +23,34 @@ function CreateThreadForm({ categoryId, onThreadCreated }) {
       setError("Thread name is required.");
       return;
     }
-
+  
     setCreating(true);
     setError(null);
-
+  
     try {
-      // Step 1: Create the thread
+      // Step 1: Create the thread (backend handles root comment creation)
       const threadResponse = await axios.post("/threads", {
         name,
         category_id: categoryId,
         description,
       });
+  
       const threadData = threadResponse.data;
-
-      console.log("Create Thread Response:", threadData);
-
-      // Extract the correct thread ID
-      const threadId = threadData.id || threadData.thread_id || threadData.threadId;
-      if (!threadId) {
-        throw new Error("Thread ID not found in response.");
+  
+      if (!threadData.thread_id || !threadData.root_comment_id) {
+        throw new Error("Thread creation failed: Missing thread ID or root comment ID.");
       }
-
-      // Step 2: Create the root-level (invisible) comment using the correct endpoint
-      const rootCommentResponse = await axios.post(`/threads/${threadId}/comments`, {
-        parent_id: null, // Root comment
-        text: "Root Comment", // Use a placeholder or empty text if supported
-      });
-
-      const rootComment = rootCommentResponse.data;
-
-      console.log("Root Comment Created:", rootComment.id);
-
-      // Step 3: Combine thread data with root comment ID
-      const threadWithRootComment = {
-        ...threadData,
-        rootCommentId: rootComment.id,
-        comments: [rootComment], // Initialize with root comment
-      };
-
-      // Step 4: Notify parent with thread data including root comment ID
-      onThreadCreated(threadWithRootComment);
-
-      // Step 5: Clear form fields
+  
+      console.log("Thread Created with Root Comment ID:", threadData.root_comment_id);
+  
+      // Step 2: Notify parent with thread data
+      onThreadCreated(threadData);
+  
+      // Step 3: Clear form fields
       setName("");
       setDescription("");
     } catch (err) {
-      console.error("Error creating thread or root comment:", err);
+      console.error("Error creating thread:", err);
       setError(
         err.response?.data?.detail || "Failed to create thread. Ensure the category exists."
       );
@@ -76,6 +58,8 @@ function CreateThreadForm({ categoryId, onThreadCreated }) {
       setCreating(false);
     }
   };
+  
+  
 
   
 

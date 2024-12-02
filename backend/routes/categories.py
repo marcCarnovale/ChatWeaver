@@ -3,7 +3,7 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import List, Optional
-from backend.database import database, categories, contexts
+from backend.database import database, categories, contexts, comments
 import logging
 import uuid  # Import UUID for generating unique thread IDs
 
@@ -67,6 +67,7 @@ async def create_category(request: CategoryCreateRequest):
         logging.error(f"Error creating category: {e}")
         raise HTTPException(status_code=400, detail="Category creation failed. Ensure the name is unique.")
 
+
 @router.get("/categories", response_model=List[CategoryResponse])
 async def get_categories():
     """
@@ -83,11 +84,13 @@ async def get_categories():
 @router.post("/threads", response_model=ThreadResponse)
 async def create_thread(request: ThreadCreateRequest):
     """
-    Create a new thread within a category.
+    Create a new thread within a category, including its root comment.
     """
     try:
-        # Generate a unique thread_id using UUID
+        # Step 1: Generate a unique thread_id
         thread_id = str(uuid.uuid4())
+
+        # Step 2: Insert the thread into the contexts table
         query = contexts.insert().values(
             thread_id=thread_id,
             category_id=request.category_id,
@@ -96,7 +99,25 @@ async def create_thread(request: ThreadCreateRequest):
             flags=0,
             approvals=0
         )
-        await database.execute(query)
+        context_id = await database.execute(query)
+
+        # Step 3: Create the root-level comment for the thread
+        root_comment_query = comments.insert().values(
+            thread_id=thread_id,
+            parent_id=None,
+            text="Root Comment",
+            flags=0,
+            approvals=0
+        )
+        root_comment_id = await database.execute(root_comment_query)
+
+        # Step 4: Update the thread with the root comment ID
+        update_query = contexts.update().where(contexts.c.id == context_id).values(
+            root_comment_id=root_comment_id
+        )
+        await database.execute(update_query)
+
+        # Step 5: Return the thread response
         return ThreadResponse(
             thread_id=thread_id,
             name=request.name,
@@ -105,7 +126,8 @@ async def create_thread(request: ThreadCreateRequest):
         )
     except Exception as e:
         logging.error(f"Error creating thread: {e}")
-        raise HTTPException(status_code=400, detail="Thread creation failed. Ensure the category exists.")
+        raise HTTPException(status_code=420, detail=str(e))#"Thread creation failed. Ensure the category exists.")
+
 
 @router.get("/categories/{category_id}/threads", response_model=List[ThreadResponse])
 async def get_threads(category_id: int):

@@ -9,6 +9,10 @@ import NewResponseModal from "./CommentThreadUtils/NewResponseModal";
 import LoadingIndicator from "./CommentThreadUtils/LoadingIndicator";
 import RepliesContainer from "./CommentThreadUtils/RepliesContainer";
 
+import { handleNewResponse } from "../utils/handleNewResponse";
+
+
+
 function CommentThread({ comment, onCommentDeleted, onCommentCreated }) {
   const [showReplyForm, setShowReplyForm] = useState(false);
   const [replyText, setReplyText] = useState("");
@@ -81,63 +85,16 @@ function CommentThread({ comment, onCommentDeleted, onCommentCreated }) {
   };
 
   // Handle Generating New Response
-  const handleNewResponse = async () => {
-    if (newResponseModel === "None") {
-      setError("Please select a model.");
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-    setShowNewResponse(false);
-
-    try {
-      const [modelType, modelName] = newResponseModel.split(" ", 2);
-
-      if (!modelType || !modelName) {
-        setError("Invalid model selection.");
-        return;
-      }
-
-      const generateResponsePayload = {
-        model_type: modelType.toLowerCase(),
-        model_name: modelName.toLowerCase(),
-      };
-
-      // Create a placeholder comment
-      const placeholderResponse = await axios.post(`/threads/${comment.thread_id}/comments`, {
-        parent_id: comment.id,
-        text: "Thinking...",
-      });
-
-      const placeholderComment = { ...placeholderResponse.data, replies: [] };
-      setReplies((prevReplies) => [...prevReplies, placeholderComment]);
-
-      // Generate response and overwrite the placeholder
-      const aiResponse = await axios.post(
-        `/threads/${comment.thread_id}/generate-response`,
-        generateResponsePayload,
-        { params: { parent_comment_id: placeholderComment.id } }
-      );
-
-      // Update placeholder with AI response data
-      const updatedComment = {
-        ...aiResponse.data,
-        replies: placeholderComment.replies, // Preserve any nested replies if applicable
-        model_name: modelName, // Ensure model_name remains for styling
-      };
-
-      setReplies((prevReplies) =>
-        prevReplies.map((reply) =>
-          reply.id === placeholderComment.id ? updatedComment : reply
-        )
-      );
-    } catch (err) {
-      console.error("Error generating new AI response:", err);
-      setError(err.response?.data?.detail || "Failed to generate AI response.");
-    } finally {
-      setLoading(false);
-    }
+  const handleNewResponseWrapper = async () => {
+    await handleNewResponse({
+      threadId: comment.thread_id,
+      parentId: comment.id,
+      newResponseModel,
+      onCommentCreated,
+      setReplies,
+      setLoading,
+      setError,
+    });
   };
 
   // Handle Actions (hide, delete, approve)
@@ -209,7 +166,7 @@ function CommentThread({ comment, onCommentDeleted, onCommentCreated }) {
         <NewResponseModal
           newResponseModel={newResponseModel}
           setNewResponseModel={setNewResponseModel}
-          handleNewResponse={handleNewResponse}
+          handleNewResponse={handleNewResponseWrapper}
           closeModal={() => setShowNewResponse(false)}
           loading={loading}
         />

@@ -53,11 +53,13 @@ async def get_thread(thread_id: str):
             thread_id=thread["thread_id"],
             name=thread["text"],
             category_id=thread["category_id"],
-            description=None
+            description=None,
+            root_comment_id=thread["root_comment_id"]  # Include root comment ID
         )
     except Exception as e:
         logging.error(f"Error fetching thread {thread_id}: {e}")
         raise HTTPException(status_code=500, detail="Failed to retrieve thread.")
+
 
 @router.get("/threads/{thread_id}/comments", response_model=List[CommentResponse])
 async def get_comments(thread_id: str):

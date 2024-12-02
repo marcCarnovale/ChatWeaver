@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import axios from "../utils/axiosConfig";
+import { handleNewResponse } from "../utils/handleNewResponse";
 
 function CreateCommentForm({ threadId, rootCommentId, onCommentCreated }) {
   const [commentText, setCommentText] = useState("");
@@ -18,7 +19,6 @@ function CreateCommentForm({ threadId, rootCommentId, onCommentCreated }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-  
     if (!commentText.trim() && selectedModel === "None") {
       setError("Comment text is required or select a model to generate a response.");
       return;
@@ -28,9 +28,8 @@ function CreateCommentForm({ threadId, rootCommentId, onCommentCreated }) {
     setError(null);
   
     try {
-      // Create the top-level comment (as a reply to the root comment)
       const response = await axios.post(`/threads/${threadId}/comments`, {
-        parent_id: rootCommentId, // Hidden root comment
+        parent_id: rootCommentId,
         text: commentText,
       });
   
@@ -38,48 +37,17 @@ function CreateCommentForm({ threadId, rootCommentId, onCommentCreated }) {
       onCommentCreated(newComment);
   
       setCommentText("");
-  
-      // Handle AI response if a model is selected
+      console.log("Creating a new comment with rootCommentID", rootCommentID)
       if (selectedModel !== "None") {
-        const [modelType, modelName] = selectedModel.split(" ", 2);
-  
-        if (!modelType || !modelName) {
-          throw new Error("Invalid model selection.");
-        }
-  
-        const generateResponsePayload = {
-          model_type: modelType.toLowerCase(),
-          model_name: modelName.toLowerCase(),
-        };
-  
-        // Create a placeholder child comment with "Thinking..."
-        const placeholderResponse = await axios.post(`/threads/${threadId}/comments`, {
-          parent_id: newComment.id,
-          text: "Thinking...",
+        await handleNewResponse({
+          threadId,
+          parentId: rootCommentId,
+          newResponseModel: selectedModel,
+          onCommentCreated,
+          setReplies: null, // Not needed here
+          setLoading,
+          setError,
         });
-  
-        const placeholderComment = { ...placeholderResponse.data, replies: [] };
-        onCommentCreated(placeholderComment);
-  
-        try {
-          // Generate the LLM response
-          const aiResponse = await axios.post(
-            `/threads/${threadId}/generate-response`,
-            generateResponsePayload,
-            { params: { parent_comment_id: newComment.id } }
-          );
-  
-          // Update the placeholder with the LLM response
-          onCommentCreated({
-            ...placeholderComment,
-            text: aiResponse.data.text,
-            flags: aiResponse.data.flags || 0,
-            approvals: aiResponse.data.approvals || 0,
-          });
-        } catch (aiErr) {
-          console.error("Error generating AI response:", aiErr);
-          setError("Failed to generate AI response.");
-        }
       }
   
       setSelectedModel("None");

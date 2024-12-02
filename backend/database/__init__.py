@@ -51,6 +51,7 @@ contexts = Table(
     Column("text", Text, nullable=False),
     Column("flags", Integer, default=0),
     Column("approvals", Integer, default=0),
+    Column("root_comment_id", Integer),
     UniqueConstraint("thread_id", "parent_id", name="uix_thread_parent"),
 )
 
