@@ -37,7 +37,7 @@ function CreateCommentForm({ threadId, rootCommentId, onCommentCreated }) {
       onCommentCreated(newComment);
   
       setCommentText("");
-      console.log("Creating a new comment with rootCommentID", rootCommentID)
+      console.log("Creating a new comment with rootCommentID", rootCommentId)
       if (selectedModel !== "None") {
         await handleNewResponse({
           threadId,
@@ -72,21 +72,6 @@ function CreateCommentForm({ threadId, rootCommentId, onCommentCreated }) {
         placeholder="Enter your comment..."
       />
 
-      {/* <div style={styles.modelSelector}>
-        <label>
-          Select Model:
-          <select
-            value={selectedModel}
-            onChange={(e) => setSelectedModel(e.target.value)}
-            style={styles.select}
-          >
-            <option value="None">None</option>
-            <option value="OpenAI GPT-4">OpenAI GPT-4</option>
-            <option value="OpenAI GPT-4o-mini">OpenAI GPT-4o Mini</option>
-            <option value="Local GPT-2">Local GPT-2</option>
-          </select>
-        </label>
-      </div> */}
 
       <button type="submit" style={styles.button} disabled={loading}>
         {loading ? "Submitting..." : "Submit Comment"}

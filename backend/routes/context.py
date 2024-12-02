@@ -10,6 +10,7 @@ from backend.dependencies import get_vector_db
 from embeddings.vector_db import VectorDB
 
 from backend.services.feedback_service import log_feedback, get_feedback_summary
+from backend.models import *
 
 import logging
 
@@ -19,36 +20,6 @@ from backend.database import database, comments  # Corrected import to include '
 router = APIRouter()
 
 # Pydantic Models
-
-class RetrieveContextRequest(BaseModel):
-    query: str
-    min_approvals: int = 0
-    hide_flagged: bool = False
-    k: int = 5
-
-class GenerateResponseRequest(BaseModel):
-    query: str
-    model_type: str = "openai"  # 'openai' or 'local'
-    model_name: str = "gpt-4"  # e.g., 'gpt-4', 'gpt-3.5-turbo'
-    parent_id: Optional[str] = None  # Updated to Optional to handle None
-
-class CreateCommentRequest(BaseModel):
-    thread_id: str
-    parent_id: Optional[int] = None  # None for top-level comments
-    text: str
-
-class CommentResponse(BaseModel):
-    id: int
-    thread_id: str
-    parent_id: Optional[int]
-    text: str
-    flags: int
-    approvals: int
-    replies: List['CommentResponse'] = Field(default_factory=list)
-    model_name: Optional[str] = None  # Added model_name
-
-    class Config:
-        orm_mode = True
 
 if TYPE_CHECKING:
     CommentResponse.update_forward_refs()

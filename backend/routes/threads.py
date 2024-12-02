@@ -9,37 +9,10 @@ from backend.services.summarization_service import summarize_text
 from backend.routes.context import CreateCommentRequest
 import logging
 import asyncio
+from backend.models import *
 
 router = APIRouter()
 
-class ThreadResponse(BaseModel):
-    thread_id: str
-    name: str
-    category_id: int
-    description: Optional[str] = None
-
-
-class CommentResponse(BaseModel):
-    id: int
-    thread_id: str
-    parent_id: Optional[int]
-    text: str
-    flags: int
-    approvals: int
-    model_name: Optional[str] = None  # New Field
-    replies: List['CommentResponse'] = Field(default_factory=list)
-    model_name: Optional[str] = None  # Added model_name
-
-    class Config:
-        orm_mode = True
-
-class CommentCreateRequest(BaseModel):
-    parent_id: Optional[int] = None
-    text: str
-
-class GenerateResponseRequest(BaseModel):
-    model_type: str = "openai"  # 'openai' or 'local'
-    model_name: str = "gpt-4"    # e.g., 'gpt-4', 'gpt2'
 
 @router.get("/threads/{thread_id}", response_model=ThreadResponse)
 async def get_thread(thread_id: str):

@@ -1,3 +1,4 @@
+
 // frontend/src/components/CreateThreadForm.js
 
 import React, { useState, useEffect} from "react";
@@ -27,6 +28,7 @@ function CreateThreadForm({ categoryId, onThreadCreated }) {
     setCreating(true);
     setError(null);
   
+
     try {
       // Step 1: Create the thread (backend handles root comment creation)
       const threadResponse = await axios.post("/threads", {
@@ -34,18 +36,21 @@ function CreateThreadForm({ categoryId, onThreadCreated }) {
         category_id: categoryId,
         description,
       });
-  
+
       const threadData = threadResponse.data;
-  
-      if (!threadData.thread_id || !threadData.root_comment_id) {
-        throw new Error("Thread creation failed: Missing thread ID or root comment ID.");
+
+      if (!threadData.root_comment_id) {
+        throw new Error("Thread creation failed: Missing root comment ID.");
       }
-  
+      if (!threadData.thread_id) {
+        throw new Error("Thread creation failed: Missing thread ID.");
+      }
+
       console.log("Thread Created with Root Comment ID:", threadData.root_comment_id);
-  
+
       // Step 2: Notify parent with thread data
       onThreadCreated(threadData);
-  
+      
       // Step 3: Clear form fields
       setName("");
       setDescription("");

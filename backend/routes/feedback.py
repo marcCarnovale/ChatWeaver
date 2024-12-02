@@ -7,12 +7,10 @@ This module defines the API endpoints for logging and retrieving feedback on con
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from ..services.feedback_service import log_feedback, get_feedback_summary
+from backend.models import *
 
 router = APIRouter()
 
-class FeedbackRequest(BaseModel):
-    context_id: str
-    action: str  # 'flag' or 'approve'
 
 @router.post("/context-feedback")
 async def context_feedback(feedback_request: FeedbackRequest):

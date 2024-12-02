@@ -6,46 +6,9 @@ from typing import List, Optional
 from backend.database import database, categories, contexts, comments
 import logging
 import uuid  # Import UUID for generating unique thread IDs
+from backend.models import *
 
 router = APIRouter()
-
-# ----------------------------
-# Pydantic Models Definitions
-# ----------------------------
-
-class CategoryCreateRequest(BaseModel):
-    name: str
-    description: Optional[str] = None
-
-class CategoryResponse(BaseModel):
-    id: int
-    name: str
-    description: Optional[str] = None
-
-class ThreadCreateRequest(BaseModel):
-    name: str
-    category_id: int
-    description: Optional[str] = None
-
-class ThreadResponse(BaseModel):
-    thread_id: str
-    name: str
-    category_id: int
-    description: Optional[str] = None
-
-class CommentCreateRequest(BaseModel):
-    parent_id: int | None = None  # Allows None or int
-    text: str
-
-class CommentResponse(BaseModel):
-    id: int
-    thread_id: str
-    parent_id: int | None = None  # Allows None or int
-    text: str
-    flags: int
-    approvals: int
-
-
 
 # ----------------------------
 # Route Definitions
@@ -122,7 +85,8 @@ async def create_thread(request: ThreadCreateRequest):
             thread_id=thread_id,
             name=request.name,
             category_id=request.category_id,
-            description=request.description
+            description=request.description,
+            root_comment_id=root_comment_id
         )
     except Exception as e:
         logging.error(f"Error creating thread: {e}")
