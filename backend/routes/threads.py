@@ -46,7 +46,8 @@ async def get_comments(thread_id: str):
                 parent_id=row["parent_id"],
                 text=row["text"],
                 flags=row["flags"],
-                approvals=row["approvals"]
+                approvals=row["approvals"],
+                model_name=row["model_name"] # Include model_name
             )
             for row in rows
         ]
