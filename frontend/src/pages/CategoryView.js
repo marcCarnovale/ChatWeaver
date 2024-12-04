@@ -12,7 +12,7 @@ function CategoryView() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  
+
   useEffect(() => {
     if (error) {
       const timer = setTimeout(() => setError(null), 5000); // 5 seconds
@@ -40,9 +40,14 @@ function CategoryView() {
       } catch (err) {
         console.error("Error fetching category or threads:", err);
         // Display the actual error message from backend if available
-        const message = err.response && err.response.data && err.response.data.detail
-          ? err.response.data.detail
-          : "Failed to load category or threads.";
+        let message = "Failed to load category or threads.";
+        if (err.response && err.response.data) {
+          if (err.response.data.detail) {
+            message = err.response.data.detail;
+          } else if (Array.isArray(err.response.data)) {
+            message = err.response.data.map(item => item.msg).join(", ");
+          }
+        }
         setError(message);
         setLoading(false);
       }
@@ -68,9 +73,9 @@ function CategoryView() {
           <p>No threads in this category. Create one!</p>
         ) : (
           threads.map((thread) => (
-            <li key={thread.thread_id} style={styles.threadItem}>
-              <Link to={`/threads/${thread.thread_id}`} style={styles.threadLink}>
-                {thread.name}
+            <li key={thread.id} style={styles.threadItem}> {/* Changed 'thread_id' to 'id' */}
+              <Link to={`/threads/${thread.id}`} style={styles.threadLink}> {/* Changed 'thread_id' to 'id' */}
+                {thread.title} {/* Changed 'name' to 'title' */}
               </Link>
             </li>
           ))

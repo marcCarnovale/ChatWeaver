@@ -3,7 +3,7 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import List, Optional
-from backend.database import database, categories, contexts, comments
+from backend.database import database, categories, threads, comments
 import logging
 import uuid  # Import UUID for generating unique thread IDs
 from backend.models import *
@@ -46,25 +46,17 @@ async def get_categories():
 
 @router.post("/threads", response_model=ThreadResponse)
 async def create_thread(request: ThreadCreateRequest):
-    """
-    Create a new thread within a category, including its root comment.
-    """
     try:
-        # Step 1: Generate a unique thread_id
-        thread_id = str(uuid.uuid4())
-
-        # Step 2: Insert the thread into the contexts table
-        query = contexts.insert().values(
-            thread_id=thread_id,
+        # Insert into the threads table
+        insert_thread_query = threads.insert().values(
+            title=request.title,  # Ensure 'title' is used
+            description=request.description,
             category_id=request.category_id,
-            parent_id=None,  # Top-level thread
-            text=request.description or "Thread initiated.",
-            flags=0,
-            approvals=0
+            root_comment_id=None
         )
-        context_id = await database.execute(query)
+        thread_id = await database.execute(insert_thread_query)
 
-        # Step 3: Create the root-level comment for the thread
+        # Create the root-level comment for the thread
         root_comment_query = comments.insert().values(
             thread_id=thread_id,
             parent_id=None,
@@ -74,64 +66,43 @@ async def create_thread(request: ThreadCreateRequest):
         )
         root_comment_id = await database.execute(root_comment_query)
 
-        # Step 4: Update the thread with the root comment ID
-        update_query = contexts.update().where(contexts.c.id == context_id).values(
+        # Update the thread with the root comment ID
+        update_thread_query = threads.update().where(threads.c.id == thread_id).values(
             root_comment_id=root_comment_id
         )
-        await database.execute(update_query)
+        await database.execute(update_thread_query)
 
-        # Step 5: Return the thread response
         return ThreadResponse(
-            thread_id=thread_id,
-            name=request.name,
-            category_id=request.category_id,
+            id=thread_id,
+            title=request.title,
             description=request.description,
+            category_id=request.category_id,
             root_comment_id=root_comment_id
         )
     except Exception as e:
         logging.error(f"Error creating thread: {e}")
-        raise HTTPException(status_code=420, detail=str(e))#"Thread creation failed. Ensure the category exists.")
+        raise HTTPException(status_code=400, detail="Thread creation failed.")
+
 
 
 @router.get("/categories/{category_id}/threads", response_model=List[ThreadResponse])
 async def get_threads(category_id: int):
-    """
-    Retrieve all threads within a specific category.
-    """
     try:
-        logging.info(f"Fetching threads for category_id: {category_id}")
-
-        # Verify that the category exists
-        category_query = categories.select().where(categories.c.id == category_id)
-        category = await database.fetch_one(category_query)
-        if not category:
-            logging.error(f"Category with id {category_id} does not exist.")
-            raise HTTPException(status_code=404, detail="Category not found.")
-
-        # Fetch threads where parent_id is None (top-level threads)
-        query = contexts.select().where(
-            contexts.c.category_id == category_id,
-            contexts.c.parent_id == None
-        )
+        query = threads.select().where(threads.c.category_id == category_id)
         rows = await database.fetch_all(query)
 
-        logging.info(f"Found {len(rows)} threads for category_id: {category_id}")
-
-        threads = [
+        threads_list = [
             ThreadResponse(
-                thread_id=row["thread_id"],
-                name=row["text"],
+                id=row["id"],
+                title=row["title"],
+                description=row["description"],
                 category_id=row["category_id"],
-                description=None,  # Adjust if you have a description field,
                 root_comment_id=row["root_comment_id"]
             )
             for row in rows
         ]
 
-        logging.info(f"Returning {len(threads)} ThreadResponse items.")
-        return threads
-    except HTTPException as he:
-        raise he  # Re-raise HTTP exceptions to be handled by FastAPI
+        return threads_list
     except Exception as e:
-        logging.error(f"Error fetching threads for category {category_id}: {e}")
+        logging.error(f"Error fetching threads: {e}")
         raise HTTPException(status_code=500, detail="Failed to retrieve threads.")

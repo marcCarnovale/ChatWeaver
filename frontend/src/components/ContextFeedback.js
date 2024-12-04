@@ -7,18 +7,6 @@ import axios from "../utils/axiosConfig";
 function ContextFeedback({ context, onFlag, onApprove }) {
   return (
     <div className="context-feedback" style={styles.feedbackContainer}>
-      {/* <p>
-        <strong>Thread {context.thread_id}:</strong> {context.text.substring(0, 100)}
-        {context.text.length > 100 ? "..." : ""}
-      </p> */}
-      {/* <div className="feedback-actions" style={styles.feedbackActions}>
-        <button onClick={onFlag} style={styles.flagButton}>
-          Flag as Irrelevant
-        </button>
-        <button onClick={onApprove} style={styles.approveButton}>
-          Approve
-        </button>
-      </div> */}
     </div>
   );
 }

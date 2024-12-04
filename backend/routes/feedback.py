@@ -1,7 +1,7 @@
 """
 Feedback API Routes
 
-This module defines the API endpoints for logging and retrieving feedback on contexts.
+This module defines the API endpoints for logging and retrieving feedback on threads.
 """
 
 from fastapi import APIRouter, HTTPException

@@ -1,31 +1,31 @@
 # backend/services/context_service.py
 
 from typing import List, Dict
-from backend.database import database, contexts
-from embeddings.retrieval.context_retrieval import retrieve_relevant_contexts
+from backend.database import database, threads
+from embeddings.retrieval.context_retrieval import retrieve_relevant_threads
 from embeddings.vector_db import VectorDB
 import json
 
-async def retrieve_contexts(vector_db: VectorDB, query: str, min_approvals: int, hide_flagged: bool, k: int = 5) -> List[Dict]:
+async def retrieve_threads(vector_db: VectorDB, query: str, min_approvals: int, hide_flagged: bool, k: int = 5) -> List[Dict]:
     """
-    Retrieves relevant contexts based on query and filters.
+    Retrieves relevant threads based on query and filters.
 
     Args:
         vector_db (VectorDB): The VectorDB instance for searching.
         query (str): User's input query.
         min_approvals (int): Minimum approval count for a context to be included.
-        hide_flagged (bool): Exclude flagged contexts if True.
+        hide_flagged (bool): Exclude flagged threads if True.
         k (int): Number of top results to retrieve from embeddings.
 
     Returns:
-        List[Dict]: Filtered and sorted contexts.
+        List[Dict]: Filtered and sorted threads.
     """
-    # Step 1: Retrieve relevant contexts using embeddings with feedback adjustments
-    relevant_contexts = await retrieve_relevant_contexts(vector_db, query, k)
+    # Step 1: Retrieve relevant threads using embeddings with feedback adjustments
+    relevant_threads = await retrieve_relevant_threads(vector_db, query, k)
 
     # Step 2: Apply additional filters based on min_approvals and hide_flagged
-    filtered_contexts = []
-    for context in relevant_contexts:
+    filtered_threads = []
+    for context in relevant_threads:
         flags = context["flags"]
         approvals = context["approvals"]
 
@@ -35,17 +35,17 @@ async def retrieve_contexts(vector_db: VectorDB, query: str, min_approvals: int,
             continue
 
         # Add context with metadata
-        filtered_contexts.append({
+        filtered_threads.append({
             "thread_id": context["thread_id"],
             "text": context["text"],
             "flags": flags,
             "approvals": approvals,
         })
 
-    # Step 3: Sort the filtered contexts by net score (approvals - flags)
-    filtered_contexts.sort(key=lambda x: x["approvals"] - x["flags"], reverse=True)
+    # Step 3: Sort the filtered threads by net score (approvals - flags)
+    filtered_threads.sort(key=lambda x: x["approvals"] - x["flags"], reverse=True)
 
-    return filtered_contexts
+    return filtered_threads
 
 async def save_conversation(vector_db: VectorDB, conversation: dict):
     """
@@ -57,7 +57,7 @@ async def save_conversation(vector_db: VectorDB, conversation: dict):
     """
     # Save to database
     await database.execute(
-        contexts.insert().values(
+        threads.insert().values(
             thread_id=conversation["conversation_id"],
             text=json.dumps(conversation["nodes"])  # Assuming 'nodes' contain messages
         )

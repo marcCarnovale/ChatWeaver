@@ -3,19 +3,27 @@
 from pydantic import BaseModel, Field
 from typing import List, Optional
 
-class ThreadResponse(BaseModel):
-    thread_id: str
-    name: str
+
+class ThreadCreateRequest(BaseModel):
+    title: str
     category_id: int
     description: Optional[str] = None
-    root_comment_id: int
+
+
+class ThreadResponse(BaseModel):
+    id: int
+    title: str
+    category_id: int
+    description: Optional[str] = None
+    root_comment_id: Optional[int] = None
 
     class Config:
         orm_mode = True
 
+
 class CommentResponse(BaseModel):
     id: int
-    thread_id: str
+    thread_id: int  # Now references 'threads.id'
     parent_id: Optional[int]
     text: str
     flags: int
@@ -28,6 +36,7 @@ class CommentResponse(BaseModel):
 
 
 
+
 class CategoryCreateRequest(BaseModel):
     name: str
     description: Optional[str] = None
@@ -36,12 +45,6 @@ class CategoryResponse(BaseModel):
     id: int
     name: str
     description: Optional[str] = None
-
-class ThreadCreateRequest(BaseModel):
-    name: str
-    category_id: int
-    description: Optional[str] = None
-
 
 class CommentCreateRequest(BaseModel):
     parent_id: int | None = None  # Allows None or int
@@ -61,6 +64,7 @@ class RetrieveContextRequest(BaseModel):
     min_approvals: int = 0
     hide_flagged: bool = False
     k: int = 5
+    
 
 class GenerateResponseRequest(BaseModel):
     model_type: str = "openai"  # 'openai' or 'local'
@@ -69,8 +73,7 @@ class GenerateResponseRequest(BaseModel):
 
 
 class CreateCommentRequest(BaseModel):
-    thread_id: str
-    placeholder_comment_id: int
+    thread_id: int
     parent_id: Optional[int] = None  # None for top-level comments
     text: str
     flags: Optional[int] = None  # Optional for overwriting

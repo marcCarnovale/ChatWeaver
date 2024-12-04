@@ -23,7 +23,7 @@ async def vector_db_fixture():
     )
     # Optionally, remove the conversation and mapping
     await database.execute(
-        database.contexts.delete().where(database.contexts.c.thread_id == "thread_test_1")
+        database.threads.delete().where(database.threads.c.id == "thread_test_1")
     )
     # Note: Removing from FAISS index is non-trivial; consider using a separate test index
     # or rebuilding the index after tests

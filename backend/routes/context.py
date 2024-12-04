@@ -4,7 +4,7 @@ from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel, Field
 from typing import Optional, List, TYPE_CHECKING
 
-from backend.services.context_service import retrieve_contexts, save_conversation
+from backend.services.context_service import retrieve_threads, save_conversation
 from backend.services.model_router import get_response
 from backend.dependencies import get_vector_db
 from embeddings.vector_db import VectorDB
@@ -32,17 +32,17 @@ async def retrieve_context(
     vector_db: VectorDB = Depends(get_vector_db)
 ):
     """
-    Retrieve relevant contexts based on the query.
+    Retrieve relevant threads based on the query.
     """
     try:
-        retrieved_contexts = await retrieve_contexts(
+        retrieved_threads = await retrieve_threads(
             vector_db,
             query=request.query,
             min_approvals=request.min_approvals,
             hide_flagged=request.hide_flagged,
             k=request.k
         )
-        return {"results": retrieved_contexts}
+        return {"results": retrieved_threads}
     except Exception as e:
         logging.error(f"Error in retrieve_context: {e}")
         raise HTTPException(status_code=500, detail="Internal server error.")
@@ -110,7 +110,7 @@ async def create_comment(request: CreateCommentRequest):
         raise HTTPException(status_code=500, detail="Internal server error.")
 
 @router.get("/get-comments/{thread_id}", response_model=List[CommentResponse])
-async def get_comments(thread_id: str):
+async def get_comments(thread_id: int):
     """
     Retrieve all comments for a thread in a nested structure.
     """

@@ -10,13 +10,13 @@ import ThreadDetailView from "./pages/ThreadDetailView"; // New Import
 
 import { Link } from "react-router-dom";
 import Breadcrumbs from "./components/Breadcrumbs";
-import RetrievedContextSidebar from "./components/RetrievedContextSidebar"; // Import the sidebar
+import Retrievedthreadsidebar from "./components/Retrievedthreadsidebar"; // Import the sidebar
 
 function App() {
   return (
     <Router>
       <div style={styles.appContainer}>
-        <RetrievedContextSidebar /> {/* Render the sidebar */}
+        <Retrievedthreadsidebar /> {/* Render the sidebar */}
         <div style={styles.mainContent}>
           <nav style={styles.nav}>
             <ul style={styles.navList}>

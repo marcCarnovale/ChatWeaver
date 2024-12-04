@@ -3,8 +3,16 @@ import axios from "../utils/axiosConfig";
 import { handleNewResponse } from "../utils/handleNewResponse";
 
 function CreateCommentForm({ threadId, rootCommentId, onCommentCreated }) {
+  const modelOptions = [
+    { label: "None", value: null },
+    { label: "OpenAI GPT-4", value: { model_type: "openai", model_name: "gpt-4" } },
+    { label: "OpenAI GPT-3.5 Turbo", value: { model_type: "openai", model_name: "gpt-3.5-turbo" } },
+    { label: "Local GPT-2", value: { model_type: "local", model_name: "gpt-2" } },
+    // Add more models as needed
+  ];
+
   const [commentText, setCommentText] = useState("");
-  const [selectedModel, setSelectedModel] = useState("None");
+  const [selectedModel, setSelectedModel] = useState(modelOptions[0]); // Default to "None"
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
 
@@ -37,14 +45,22 @@ function CreateCommentForm({ threadId, rootCommentId, onCommentCreated }) {
       setCommentText("");
     } catch (err) {
       console.error("Error creating comment:", err);
-      setError("Failed to create comment.");
+      let errorMessage = "Failed to create comment.";
+      if (err.response && err.response.data) {
+        if (err.response.data.detail) {
+          errorMessage = err.response.data.detail;
+        } else if (Array.isArray(err.response.data)) {
+          errorMessage = err.response.data.map(item => item.msg).join(", ");
+        }
+      }
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
   };
 
   const handleRequestResponse = async () => {
-    if (selectedModel === "None") {
+    if (!selectedModel.value) {
       setError("Please select a model to request a response.");
       return;
     }
@@ -56,17 +72,26 @@ function CreateCommentForm({ threadId, rootCommentId, onCommentCreated }) {
       await handleNewResponse({
         threadId,
         parentId: rootCommentId,
-        newResponseModel: selectedModel,
+        modelType: selectedModel.value.model_type,
+        modelName: selectedModel.value.model_name,
         onCommentCreated,
         setReplies: null, // Not needed here
         setLoading,
         setError,
       });
 
-      setSelectedModel("None");
+      setSelectedModel(modelOptions[0]); // Reset to "None"
     } catch (err) {
       console.error("Error requesting response:", err);
-      setError("Failed to request response.");
+      let errorMessage = "Failed to request response.";
+      if (err.response && err.response.data) {
+        if (err.response.data.detail) {
+          errorMessage = err.response.data.detail;
+        } else if (Array.isArray(err.response.data)) {
+          errorMessage = err.response.data.map(item => item.msg).join(", ");
+        }
+      }
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -84,7 +109,6 @@ function CreateCommentForm({ threadId, rootCommentId, onCommentCreated }) {
         placeholder="Enter your comment..."
       />
 
-
       <div style={styles.buttonGroup}>
         <button
           type="submit"
@@ -92,7 +116,7 @@ function CreateCommentForm({ threadId, rootCommentId, onCommentCreated }) {
           style={{ ...styles.button, backgroundColor: "#28a745" }}
           disabled={loading}
         >
-          {loading && selectedModel === "None" ? "Submitting..." : "Submit Comment"}
+          {loading && !selectedModel.value ? "Submitting..." : "Submit Comment"}
         </button>
         <button
           type="button"
@@ -100,24 +124,26 @@ function CreateCommentForm({ threadId, rootCommentId, onCommentCreated }) {
           style={{ ...styles.button, backgroundColor: "#007BFF" }}
           disabled={loading}
         >
-          {loading && selectedModel !== "None" ? "Requesting..." : "Request Response"}
+          {loading && selectedModel.value ? "Requesting..." : "Request Response"}
         </button>
       </div>
-
 
       <div style={styles.modelSelectorTopComment}>
         <label>
           Select Model:
           <select
-            value={selectedModel}
-            onChange={(e) => setSelectedModel(e.target.value)}
+            value={selectedModel.label}
+            onChange={(e) => {
+              const selected = modelOptions.find(option => option.label === e.target.value);
+              setSelectedModel(selected);
+            }}
             style={styles.select}
           >
-            <option value="None">None</option>
-            <option value="OpenAI GPT-4">OpenAI GPT-4</option>
-            <option value="OpenAI GPT-4o-mini">OpenAI GPT-4o Mini</option>
-            <option value="Local GPT-2">Local GPT-2</option>
-            {/* Add more models as needed */}
+            {modelOptions.map(option => (
+              <option key={option.label} value={option.label}>
+                {option.label}
+              </option>
+            ))}
           </select>
         </label>
       </div>
@@ -139,18 +165,12 @@ const styles = {
     border: "1px solid #ccc",
     resize: "vertical",
   },
-  modelSelector: {
-    marginTop: "0.5rem",
-    display: "flex",
-    alignItems: "center",
-    gap: "0.5rem",
-  },
   modelSelectorTopComment: {
     marginTop: "0.5rem",
     display: "flex",
     alignItems: "center",
     gap: "0.5rem",
-    justifyContent: "flex-end", // This right-aligns the content
+    justifyContent: "flex-end",
     padding: "5px",
   },
   select: {

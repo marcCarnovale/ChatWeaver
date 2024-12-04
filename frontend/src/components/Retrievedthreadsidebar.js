@@ -1,11 +1,11 @@
-// frontend/src/components/RetrievedContextSidebar.js
+// frontend/src/components/Retrievedthreadsidebar.js
 
 import React, { useState, useEffect } from "react";
 import axios from "../utils/axiosConfig";
 import { Link } from "react-router-dom";
 import CreateCategoryForm from "./CreateCategoryForm"; // Correct Import
 
-function RetrievedContextSidebar() {
+function Retrievedthreadsidebar() {
   const [categories, setCategories] = useState([]);
   const [creatingCategory, setCreatingCategory] = useState(false);
   const [error, setError] = useState(null);
@@ -89,4 +89,4 @@ const styles = {
   },
 };
 
-export default RetrievedContextSidebar;
+export default Retrievedthreadsidebar;

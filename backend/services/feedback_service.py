@@ -1,7 +1,7 @@
 """
 Feedback Service
 
-This module contains the business logic for logging and retrieving feedback on contexts.
+This module contains the business logic for logging and retrieving feedback on threads.
 """
 
 from ..database import database

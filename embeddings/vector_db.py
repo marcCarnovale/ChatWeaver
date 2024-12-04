@@ -7,7 +7,7 @@ import os
 from typing import List, Dict, Optional
 import logging
 
-from backend.database import database, embedding_mapping, contexts, feedback
+from backend.database import database, embedding_mapping, threads, feedback
 from backend.services.executor import executor  # Centralized executor
 from sqlalchemy import select
 import asyncio
@@ -69,7 +69,7 @@ class VectorDB:
         else:
             logging.warning("FAISS index is not initialized. Cannot save.")
 
-    async def add_to_index_bulk(self, thread_ids: List[str], texts: List[str]):
+    async def add_to_index_bulk(self, thread_ids: List[int], texts: List[str]):
         """
         Asynchronously add multiple embeddings to the FAISS index and update the mapping.
 
@@ -161,8 +161,8 @@ class VectorDB:
                 continue  # Mapping not found
 
             # Fetch context text from the database asynchronously
-            query_conversation = select([contexts.c.thread_id, contexts.c.text]).where(
-                contexts.c.thread_id == thread_id
+            query_conversation = select([threads.c.id, threads.c.text]).where(
+                threads.c.id == thread_id
             )
             conversation = await database.fetch_one(query_conversation)
             if not conversation:
@@ -194,12 +194,12 @@ class VectorDB:
         # Return top k results
         return sorted_results[:k]
 
-    async def index_conversation(self, thread_id: str, text: str) -> Dict:
+    async def index_conversation(self, thread_id: int, text: str) -> Dict:
         """
         Asynchronously index a new conversation by generating and storing its embedding.
 
         Args:
-            thread_id (str): Unique identifier for the conversation.
+            thread_id (int): Unique identifier for the conversation.
             text (str): The conversation text to index.
 
         Returns:

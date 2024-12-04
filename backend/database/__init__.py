@@ -40,44 +40,38 @@ categories = Table(
 )
 
 
-# Modify Contexts table to include category_id
-contexts = Table(
-    "contexts",
+# Define the Threads table
+threads = Table(
+    "threads",
     metadata,
     Column("id", Integer, primary_key=True, autoincrement=True),
-    Column("thread_id", String, unique=True, nullable=False),
-    Column("category_id", Integer, ForeignKey("categories.id"), nullable=True),  # New Column
-    Column("parent_id", Integer, ForeignKey("contexts.id"), nullable=True),
-    Column("text", Text, nullable=False),
-    Column("flags", Integer, default=0),
-    Column("approvals", Integer, default=0),
+    Column("category_id", Integer, ForeignKey("categories.id"), nullable=False),
+    Column("title", String, nullable=False),
+    Column("description", Text, nullable=True),
     Column("root_comment_id", Integer),
-    UniqueConstraint("thread_id", "parent_id", name="uix_thread_parent"),
 )
-
-
 
 
 comments = Table(
     "comments",
     metadata,
     Column("id", Integer, primary_key=True, autoincrement=True),
-    Column("thread_id", String, ForeignKey("contexts.thread_id"), nullable=False),
+    Column("thread_id", Integer, ForeignKey("threads.id"), nullable=False),
     Column("parent_id", Integer, ForeignKey("comments.id"), nullable=True),
     Column("text", Text, nullable=False),
     Column("flags", Integer, default=0),
     Column("approvals", Integer, default=0),
-    Column("model_name", String, nullable=True),  # New Column
-    Column("hidden", Boolean, default=False),     # New Column
+    Column("model_name", String, nullable=True),
+    Column("hidden", Boolean, default=False),
 )
 
-# Define Embedding Mapping table
 embedding_mapping = Table(
     "embedding_mapping",
     metadata,
     Column("faiss_index", Integer, primary_key=True, autoincrement=True),
-    Column("thread_id", String, unique=True, nullable=False),
+    Column("thread_id", Integer, ForeignKey("threads.id"), unique=True, nullable=False),
 )
+
 
 # Asynchronous SQLAlchemy engine and sessionmaker
 engine = create_async_engine(DATABASE_URL, echo=True)
@@ -96,7 +90,7 @@ async def init_db():
     """
     print("Initializing database...")
     async with engine.begin() as conn:
-        # Create all tables, including the modified contexts table
+        # Create all tables, including the modified threads table
         await conn.run_sync(metadata.create_all)
     # Connect the asynchronous database
     await database.connect()
@@ -176,7 +170,7 @@ async def save_context(context_id: str, text: str):
         context_id (str): Unique identifier for the context.
         text (str): The context text.
     """
-    query = contexts.insert().values(
+    query = threads.insert().values(
         thread_id=context_id,
         text=text,
         flags=0,
@@ -202,13 +196,13 @@ async def get_feedback_summary() -> dict:
         print(f"Error fetching feedback summary: {e}")
         return {"total_flags": 0, "total_approvals": 0}
 
-async def save_contexts(contexts_list):
+async def save_threads(threads_list):
     """
-    Save multiple contexts into the database.
+    Save multiple threads into the database.
     
     Args:
-        contexts_list (list): List of context dictionaries.
+        threads_list (list): List of context dictionaries.
     """
     async with database.transaction():
-        for context in contexts_list:
+        for context in threads_list:
             await save_context(context["thread_id"], context["text"])
