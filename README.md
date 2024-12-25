@@ -82,6 +82,7 @@ cd chat-assistant-organizer
 npm install
 # or
 yarn install
+```
 
 ##### c. Configure Environment Variables
 Create a .env file in the backend directory and add the following variables:
