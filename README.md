@@ -106,9 +106,7 @@ npx sequelize-cli db:migrate
 
 ##### e. Start the Backend Server
 ``` bash
-npm start
-# or
-yarn start
+uvicorn backend.main:app --host 0.0.0.0 --port 8000
 ```
 
 The backend server should now be running on http://localhost:5000.
