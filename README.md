@@ -75,11 +75,13 @@ Ensure you have the following installed on your system:
 ```bash
 git clone https://github.com/yourusername/chat-assistant-organizer.git
 cd chat-assistant-organizer
+```
 
 #### 2. Setup Backend
 ##### a. Navigate to Backend Directory
 ```
   cd backend
+```
 ##### b. Install Dependencies
 ```
 npm install
@@ -92,6 +94,7 @@ Create a .env file in the backend directory and add the following variables:
 ```
 PORT=5000
 DATABASE_URL=postgres://username:password@localhost:5432/chat_assistant_db
+```
 
 Replace username, password, and chat_assistant_db with your PostgreSQL credentials and desired database name.
 
