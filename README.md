@@ -1,4 +1,7 @@
-# Chat Assistant Organizer
+# Forum-Style Threaded Chat Assistant Interface
+
+![Screenshot from 2024-12-24 22-14-36](https://github.com/user-attachments/assets/11c4658d-09f7-4010-a102-504209f136b4)
+
 
 ![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
 
