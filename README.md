@@ -26,7 +26,7 @@
 
 ## Project Overview
 
-**Chatweaver** is a web application designed to streamline the organization and management of chat assistant responses. Tailored for personal use, it facilitates live work, ongoing exploration, and efficient handling of chat interactions. Users can create categorized threads, manage nested comments, and leverage AI-generated responses to enhance their workflow.
+**ChatWeaver** is a web application designed to streamline the organization and management of chat assistant responses. Tailored for personal use, it facilitates live work, ongoing exploration, and efficient handling of chat interactions. Users can create categorized threads, manage nested comments, and leverage AI-generated responses to enhance their workflow.
 
 ## Features
 
