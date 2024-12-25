@@ -102,6 +102,7 @@ Run Migrations:
 Assuming you're using Sequelize, run:
 ``` bash
 npx sequelize-cli db:migrate
+```
 
 ##### e. Start the Backend Server
 ``` bash
