@@ -4,15 +4,10 @@ Unit Tests for Feedback API
 This file contains test cases for the feedback API endpoints.
 """
 
-from fastapi.testclient import TestClient
-from backend.main import app
+import pytest
 
-client = TestClient(app)
 
-def test_context_feedback_flag():
-    """
-    Test the /context-feedback endpoint for flagging a context.
-    """
+def test_context_feedback_flag(client):
     response = client.post("/api/context-feedback", json={
         "context_id": "thread123",
         "action": "flag"
@@ -20,10 +15,8 @@ def test_context_feedback_flag():
     assert response.status_code == 200
     assert response.json()["message"] == "Context thread123 flagged successfully."
 
-def test_context_feedback_approve():
-    """
-    Test the /context-feedback endpoint for approving a context.
-    """
+
+def test_context_feedback_approve(client):
     response = client.post("/api/context-feedback", json={
         "context_id": "thread123",
         "action": "approve"
@@ -31,10 +24,8 @@ def test_context_feedback_approve():
     assert response.status_code == 200
     assert response.json()["message"] == "Context thread123 approved successfully."
 
-def test_context_feedback_invalid_action():
-    """
-    Test the /context-feedback endpoint with an invalid action.
-    """
+
+def test_context_feedback_invalid_action(client):
     response = client.post("/api/context-feedback", json={
         "context_id": "thread123",
         "action": "invalid_action"
