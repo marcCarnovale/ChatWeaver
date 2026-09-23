@@ -6,10 +6,13 @@ This script provides command-line functionality to parse HTML conversations and 
 
 import argparse
 import asyncio
-from services.html_parser import parse_chatgpt_html
-from services.context_service import save_conversation
 from pathlib import Path
+
+from services.context_service import save_conversation
+from services.html_parser import parse_chatgpt_html
+
 from backend.database import init_db
+
 
 async def main():
     parser = argparse.ArgumentParser(description="Chatweaver Management Script")

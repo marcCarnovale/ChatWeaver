@@ -1,12 +1,15 @@
 """Integration tests for thread and comment endpoints."""
 
-from backend.database import database, comments
-import pytest
+from uuid import uuid4
 
 
 def test_category_thread_comment_flow(client):
     # Create category
-    resp = client.post("/api/categories", json={"name": "TestCat", "description": "d"})
+    category_name = f"TestCat-{uuid4()}"
+    resp = client.post(
+        "/api/categories",
+        json={"name": category_name, "description": "d"},
+    )
     assert resp.status_code == 200
     cat_id = resp.json()["id"]
 

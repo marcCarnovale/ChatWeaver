@@ -2,8 +2,7 @@ fastapi
 uvicorn
 sqlalchemy
 databases
+aiosqlite
 python-dotenv
 beautifulsoup4
-sentence-transformers
-faiss-cpu
 openai

@@ -4,11 +4,11 @@ HTML Parsing Module
 This module provides functionality to parse ChatGPT conversation HTML into structured JSON.
 """
 
-from bs4 import BeautifulSoup
-import json
 import asyncio
 from concurrent.futures import ProcessPoolExecutor
 from typing import Dict
+
+from bs4 import BeautifulSoup
 
 executor = ProcessPoolExecutor()
 

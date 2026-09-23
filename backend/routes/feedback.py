@@ -5,9 +5,9 @@ This module defines the API endpoints for logging and retrieving feedback on thr
 """
 
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel
-from ..services.feedback_service import log_feedback, get_feedback_summary
-from backend.models import *
+
+from backend.models import FeedbackRequest
+from backend.services.feedback_service import get_feedback_summary, log_feedback
 
 router = APIRouter()
 
@@ -24,11 +24,20 @@ async def context_feedback(feedback_request: FeedbackRequest):
         dict: Confirmation message.
     """
     if feedback_request.action not in ["flag", "approve"]:
-        raise HTTPException(status_code=400, detail="Invalid action. Use 'flag' or 'approve'.")
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid action. Must be 'flag' or 'approve'.",
+        )
     
     success = await log_feedback(feedback_request.context_id, feedback_request.action)
     if success:
-        return {"message": f"Context {feedback_request.context_id} {feedback_request.action} successfully."}
+        past_tense = {"flag": "flagged", "approve": "approved"}
+        return {
+            "message": (
+                f"Context {feedback_request.context_id} "
+                f"{past_tense[feedback_request.action]} successfully."
+            )
+        }
     else:
         raise HTTPException(status_code=500, detail="Failed to log feedback.")
     

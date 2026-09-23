@@ -1,10 +1,12 @@
 # backend/services/context_service.py
 
-from typing import List, Dict
+import json
+from typing import Dict, List
+
 from backend.database import database, threads
 from embeddings.retrieval.context_retrieval import retrieve_relevant_threads
 from embeddings.vector_db import VectorDB
-import json
+
 
 async def retrieve_threads(vector_db: VectorDB, query: str, min_approvals: int, hide_flagged: bool, k: int = 5) -> List[Dict]:
     """

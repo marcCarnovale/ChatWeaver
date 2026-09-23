@@ -1,20 +1,25 @@
 # backend/services/model_router.py
 
+import logging
+
 from openai import OpenAI
-import numpy as np
-from transformers import pipeline
-import faiss
+
 from backend.config import OPENAI_API_KEY
-import logging 
-from transformers import AutoTokenizer
-import time
 
-# Initialize local LLM pipeline (e.g., GPT-2) with correct pad_token_id
-local_llm = pipeline("text-generation", model="gpt2", pad_token_id=50256)
-
-# Initialize tokenizer for GPT-2 to handle tokenization and truncation
-tokenizer = AutoTokenizer.from_pretrained("gpt2")
+local_llm = None
+tokenizer = None
 MAX_TOKENS = 1024  # GPT-2's maximum token limit
+
+
+def _initialize_local_model():
+    """Load the optional local model only when a caller requests it."""
+    global local_llm, tokenizer
+    from transformers import AutoTokenizer, pipeline
+
+    if local_llm is None:
+        local_llm = pipeline("text-generation", model="gpt2", pad_token_id=50256)
+    if tokenizer is None:
+        tokenizer = AutoTokenizer.from_pretrained("gpt2")
 
 
 openAPI_client = None
@@ -26,9 +31,21 @@ def init_openapi_session() :
     )
 
 
-# Initialize FAISS index
 openai_embedding_dimension = 1536  # For OpenAI's text-embedding-ada-002
-openai_index = faiss.IndexFlatL2(openai_embedding_dimension)
+openai_index = None
+
+
+def _get_openai_index():
+    global openai_index
+    if openai_index is None:
+        try:
+            import faiss
+        except ImportError as error:
+            raise RuntimeError(
+                "FAISS is not installed. Install backend/requirements-ml.txt."
+            ) from error
+        openai_index = faiss.IndexFlatL2(openai_embedding_dimension)
+    return openai_index
 
 def add_to_faiss(text):
     """
@@ -41,9 +58,11 @@ def add_to_faiss(text):
         input=text,
         model="text-embedding-ada-002"
     )
-    embedding = embedding_response["data"][0]["embedding"]
+    import numpy as np
+
+    embedding = embedding_response.data[0].embedding
     embedding_np = np.array(embedding).astype('float32')
-    openai_index.add(np.expand_dims(embedding_np, axis=0))
+    _get_openai_index().add(np.expand_dims(embedding_np, axis=0))
 
 def search_openai_faiss(query, top_k=5):
     """
@@ -56,9 +75,11 @@ def search_openai_faiss(query, top_k=5):
         input=query,
         model="text-embedding-ada-002"
     )
-    embedding = embedding_response["data"][0]["embedding"]
+    import numpy as np
+
+    embedding = embedding_response.data[0].embedding
     embedding_np = np.array(embedding).astype('float32')
-    distances, indices = openai_index.search(np.expand_dims(embedding_np, axis=0), top_k)
+    distances, indices = _get_openai_index().search(np.expand_dims(embedding_np, axis=0), top_k)
     return indices[0]  # Return top_k indices
 
 
@@ -70,7 +91,6 @@ def get_openai_response(prompt: str, model: str = "gpt-4") -> str:
         init_openapi_session()
     client = openAPI_client
     try:
-        logging.info(f"Sent prompt {prompt} ... ")
         logging.info(f"Generating AI response using OpenAI model: {model}")
         response = client.chat.completions.create(
             messages=[
@@ -82,7 +102,6 @@ def get_openai_response(prompt: str, model: str = "gpt-4") -> str:
             model=model,
         )
         logging.info("AI response generated successfully.")
-        logging.info(f"Response was {response}, \ntype of response was {type(response)}, \ndir of response was {dir(response)}.")
         return response.choices[0].message.content.strip()
     except Exception as e:
         logging.error(f"Error generating OpenAI response: {e}")
@@ -126,6 +145,7 @@ def truncate_prompt(prompt: str, max_tokens: int = MAX_TOKENS) -> str:
     Returns:
         str: Truncated prompt.
     """
+    _initialize_local_model()
     tokens = tokenizer.encode(prompt, add_special_tokens=False)
     if len(tokens) > max_tokens - 150:  # Reserve space for max_new_tokens
         tokens = tokens[-(max_tokens - 150):]  # Keep the last tokens
@@ -139,6 +159,7 @@ def get_local_llm_response(prompt: str, model: str = "gpt2") -> str:
     Get response from a local Hugging Face LLM.
     """
     # Truncate the prompt if necessary
+    _initialize_local_model()
     truncated_prompt = truncate_prompt(prompt)
     
     response = local_llm(
@@ -153,7 +174,6 @@ def get_response(prompt: str, model_type: str = "openai", model_name: str = "gpt
     """
     Route prompt to the appropriate model.
     """
-    logging.info(prompt)
     if model_type == "openai":
         return get_openai_response(prompt, model=model_name)
     elif model_type == "local":

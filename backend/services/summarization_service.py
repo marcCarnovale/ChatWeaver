@@ -1,11 +1,26 @@
-from transformers import pipeline
-from sentence_transformers import SentenceTransformer, util
 import logging
 import re
 
-# Initialize the summarization pipeline
-summarizer = pipeline("summarization", model="facebook/bart-large-cnn")
-sentence_transformer = SentenceTransformer("all-MiniLM-L6-v2")  # Or another Sentence Transformer model
+summarizer = None
+sentence_transformer = None
+
+
+def _get_summarization_models():
+    global summarizer, sentence_transformer
+    try:
+        from sentence_transformers import SentenceTransformer, util
+        from transformers import pipeline
+    except ImportError as error:
+        raise RuntimeError(
+            "Summarization dependencies are not installed. "
+            "Install backend/requirements-ml.txt."
+        ) from error
+
+    if summarizer is None:
+        summarizer = pipeline("summarization", model="facebook/bart-large-cnn")
+    if sentence_transformer is None:
+        sentence_transformer = SentenceTransformer("all-MiniLM-L6-v2")
+    return summarizer, sentence_transformer, util
 
 def summarize_text_chain(
     comment_chain: list,
@@ -27,6 +42,7 @@ def summarize_text_chain(
         str: A formatted summary of the comment chain.
     """
     try:
+        summarizer, sentence_transformer, util = _get_summarization_models()
         # Step 1: Extract the text from the comment chain
         comment_texts = [f"{comment['source']}: {comment['text']}" for comment in comment_chain]
 

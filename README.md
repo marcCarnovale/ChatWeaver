@@ -1,178 +1,91 @@
-# Forum-Style Threaded Chat Assistant Interface
+# ChatWeaver
 
-![Screenshot from 2024-12-24 22-14-36](https://github.com/user-attachments/assets/11c4658d-09f7-4010-a102-504209f136b4)
+An experimental personal workspace for organizing assistant conversations as categories, threads, and nested comments. The application combines a React interface with a FastAPI backend, local SQLite storage, and optional embedding/model integrations.
 
+![ChatWeaver interface](https://github.com/user-attachments/assets/11c4658d-09f7-4010-a102-504209f136b4)
 
-![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
+## Status
 
-## Table of Contents
+ChatWeaver is a prototype rather than a production multi-user service. It currently assumes a trusted local user and does not provide authentication or tenant isolation. External model calls may incur cost and transmit supplied text to the selected provider.
 
-- [Project Overview](#project-overview)
-- [Features](#features)
-- [Technologies Used](#technologies-used)
-- [Getting Started](#getting-started)
-  - [Prerequisites](#prerequisites)
-  - [Installation](#installation)
-    - [Frontend Setup](#frontend-setup)
-    - [Backend Setup](#backend-setup)
-- [Usage](#usage)
-- [Project Structure](#project-structure)
-- [API Endpoints](#api-endpoints)
-- [Contributing](#contributing)
-- [License](#license)
-- [Contact](#contact)
+## Architecture
 
----
+- **Frontend:** React, React Router, Axios, React Markdown and DOMPurify.
+- **Backend:** FastAPI with asynchronous SQLite access through `databases`/SQLAlchemy.
+- **Retrieval:** SentenceTransformers embeddings stored in a local FAISS index.
+- **Models:** optional OpenAI calls and an optional local GPT-2 pipeline.
 
-## Project Overview
+The repository does not use Node/Express or PostgreSQL for its tracked backend implementation.
 
-**ChatWeaver** is a web application designed to streamline the organization and management of chat assistant responses. Tailored for personal use, it facilitates live work, ongoing exploration, and efficient handling of chat interactions. Users can create categorized threads, manage nested comments, and leverage AI-generated responses to enhance their workflow.
+## Local setup
 
-## Features
-
-- **Thread Management:** Create, view, and manage threads within specific categories.
-- **Nested Comments:** Engage in detailed discussions with support for nested replies.
-- **Persistent Collapsed State:** Collapse or expand comments with the state persisting across sessions.
-- **AI-Generated Responses:** Utilize AI models to generate intelligent responses to comments.
-- **Real-Time Updates:** Experience immediate UI updates with optimistic rendering.
-- **Error Handling:** Receive clear and informative error messages for enhanced usability.
-- **Responsive Design:** Enjoy a seamless experience across various devices and screen sizes.
-
-## Technologies Used
-
-### Frontend
-
-- **React:** Building dynamic and responsive user interfaces.
-- **Axios:** Handling HTTP requests to interact with the backend API.
-- **React Context API:** Managing global state for collapsed comments.
-- **React Icons:** Incorporating intuitive icons for better UX.
-- **CSS:** Styling components with custom or framework-based styles.
-
-### Backend
-
-- **Node.js & Express:** Creating a robust and scalable RESTful API.
-- **Database (e.g., PostgreSQL):** Storing threads, comments, and user preferences.
-- **Sequelize ORM:** Managing database interactions with ease.
-- **Socket.IO (Optional):** Facilitating real-time communication for collaborative features.
-
-## Getting Started
-
-Follow these instructions to set up and run the project on your local machine.
-
-### Prerequisites
-
-Ensure you have the following installed on your system:
-
-- **Node.js (v14 or higher):** [Download Node.js](https://nodejs.org/)
-- **npm or yarn:** Package managers for installing dependencies.
-- **Database (e.g., PostgreSQL):** [Download PostgreSQL](https://www.postgresql.org/download/)
-- **Git:** For version control. [Download Git](https://git-scm.com/downloads)
-
-### Installation
-
-#### 1. Clone the Repository
+Python 3.10+, Node 20+, and npm are recommended.
 
 ```bash
-git clone https://github.com/yourusername/chat-assistant-organizer.git
-cd chat-assistant-organizer
+git clone https://github.com/marcCarnovale/ChatWeaver.git
+cd ChatWeaver
+cp .env.example .env
+
+python -m venv .venv
+source .venv/bin/activate
+python -m pip install -r backend/requirements.txt
+uvicorn backend.main:app --reload --port 8000
 ```
 
-#### 2. Setup Backend
-##### a. Navigate to Backend Directory
-```
-  cd backend
-```
-##### b. Install Dependencies
-```
-npm install
-# or
-yarn install
-```
+In another terminal:
 
-##### c. Configure Environment Variables
-Create a .env file in the backend directory and add the following variables:
-```
-PORT=5000
-DATABASE_URL=postgres://username:password@localhost:5432/chat_assistant_db
-```
-
-Replace username, password, and chat_assistant_db with your PostgreSQL credentials and desired database name.
-
-##### d. Setup the Database
-Create the Database:
-``` bash
-createdb chat_assistant_db
-```
-
-Run Migrations:
-Assuming you're using Sequelize, run:
-``` bash
-npx sequelize-cli db:migrate
-```
-
-##### e. Start the Backend Server
-``` bash
-uvicorn backend.main:app --host 0.0.0.0 --port 8000
-```
-
-The backend server should now be running on http://localhost:5000.
-
-#### 3. Setup Frontend
-##### a. Navigate to Frontend Directory
-Open a new terminal window/tab and navigate to the frontend directory:
-``` bash
+```bash
 cd frontend
-```
-
-##### b. Install Dependencies
-``` bash
-npm install
-# or
-yarn install
-```
-
-##### c. Configure Environment Variables
-Create a .env file in the frontend directory and add the following variables:
-``` bash
-REACT_APP_API_BASE_URL=http://localhost:5000/api
-```
-
-##### d. Start the Frontend Server
-``` bash
+npm ci
 npm start
-# or
-yarn start
 ```
 
-The frontend application should now be running on http://localhost:3000.
+Open `http://localhost:3000`. The frontend defaults to the backend at `http://localhost:8000/api`.
 
+To enable local embeddings, FAISS retrieval, and the local GPT-2 option, also run:
 
-## Usage
+```bash
+python -m pip install -r backend/requirements-ml.txt
+```
 
-### Creating a New Thread
+The first embedding or local-model operation can download substantial model files. `OPENAI_API_KEY` is needed only for OpenAI-backed operations.
 
-1. **Navigate to the Application:**
+## Configuration
 
-   Open your browser and go to [http://localhost:3000](http://localhost:3000).
+Copy `.env.example` and adjust:
 
-2. **Fill Out the Thread Form:**
-   - Enter a **Thread Name**.
-   - Optionally, provide a **Description**.
+- `OPENAI_API_KEY`: optional provider credential;
+- `CORS_ORIGINS`: comma-separated allowed browser origins for the backend; and
+- `ENABLE_RETRIEVAL`: set to `true` after installing the optional ML requirements; and
+- `REACT_APP_API_BASE_URL`: frontend API endpoint.
 
-3. **Submit the Form:**
+Do not commit `.env`. Local SQLite databases, FAISS indexes, caches, and model artifacts are excluded from version control.
 
-   Click the **Create Thread** button. The new thread will appear in the thread list without needing a page reload.
+## Verification
 
-### Managing Comments
+Backend:
 
-1. **Select a Thread:**
+```bash
+python -m pip install -r backend/requirements-dev.txt
+pytest -q
+ruff check --select E4,E7,E9,F,I backend embeddings tests
+```
 
-   Click on a thread from the list to view its comments.
+Frontend:
 
-2. **View Nested Comments:**
-   - **Expand/Collapse Comments:** Click on the arrow icon next to a comment to collapse or expand its replies.
-   - **Add a Comment:** Use the **Reply** button to add a new comment. Enter your comment and optionally select an AI model to generate a response.
+```bash
+cd frontend
+npm ci
+npm run build
+```
 
-3. **AI-Generated Responses:**
-   - When adding a comment, select an AI model (e.g., "OpenAI GPT-4") to generate a response.
-   - The AI response will appear as a nested comment under your original comment.
+Tests must not make real provider calls. Model and retrieval boundaries should be replaced with deterministic fakes.
+
+## Security and operational limitations
+
+- No authentication or authorization is implemented.
+- The default CORS policy permits only the documented local frontend origins; configure it explicitly for another deployment.
+- Prompt and response bodies should not be logged.
+- The local database and FAISS index are not designed for concurrent distributed writers.
+- Provider availability, model behavior and API compatibility are not guaranteed.
+- This repository has not received an independent security review.

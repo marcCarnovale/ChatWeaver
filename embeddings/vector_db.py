@@ -1,16 +1,14 @@
 # embeddings/vector_db.py
 
-import faiss
-import numpy as np
-from sentence_transformers import SentenceTransformer
-import os
-from typing import List, Dict, Optional
-import logging
-
-from backend.database import database, embedding_mapping, threads, feedback
-from backend.services.executor import executor  # Centralized executor
-from sqlalchemy import select
 import asyncio
+import logging
+import os
+from typing import Any, Dict, List, Optional
+
+from sqlalchemy import select
+
+from backend.database import database, embedding_mapping, feedback, threads
+from backend.services.executor import executor  # Centralized executor
 
 # Configuration
 INDEX_FILE = "faiss_index.bin"
@@ -20,14 +18,29 @@ EMBEDDING_MODEL_NAME = "all-MiniLM-L6-v2"
 class VectorDB:
     def __init__(self):
         self.embedding_index_to_thread: Dict[int, str] = {}
-        self.index: Optional[faiss.Index] = None
-        self.embedding_model: Optional[SentenceTransformer] = None
+        self.index: Optional[Any] = None
+        self.embedding_model: Optional[Any] = None
+        self._faiss = None
+        self._np = None
 
     async def initialize(self):
         """
         Initialize the embedding model, FAISS index, and load existing mappings.
         """
         logging.info("Initializing VectorDB...")
+
+        try:
+            import faiss
+            import numpy as np
+            from sentence_transformers import SentenceTransformer
+        except ImportError as error:
+            raise RuntimeError(
+                "Retrieval dependencies are not installed. "
+                "Install backend/requirements-ml.txt to enable embeddings."
+            ) from error
+
+        self._faiss = faiss
+        self._np = np
         
         # Initialize embedding model
         self.embedding_model = SentenceTransformer(EMBEDDING_MODEL_NAME)
@@ -35,10 +48,10 @@ class VectorDB:
 
         # Initialize FAISS index
         if os.path.exists(INDEX_FILE):
-            self.index = faiss.read_index(INDEX_FILE)
+            self.index = self._faiss.read_index(INDEX_FILE)
             logging.info("FAISS index loaded from disk.")
         else:
-            self.index = faiss.IndexFlatL2(DIMENSIONS)  # Using L2 distance
+            self.index = self._faiss.IndexFlatL2(DIMENSIONS)  # Using L2 distance
             logging.info("Initialized new FAISS index.")
 
         # Load existing embedding mappings from the database
@@ -64,7 +77,7 @@ class VectorDB:
         Save the FAISS index to disk.
         """
         if self.index:
-            faiss.write_index(self.index, INDEX_FILE)
+            self._faiss.write_index(self.index, INDEX_FILE)
             logging.info("FAISS index saved to disk.")
         else:
             logging.warning("FAISS index is not initialized. Cannot save.")
@@ -86,10 +99,10 @@ class VectorDB:
         # Encode texts to embeddings asynchronously
         loop = asyncio.get_event_loop()
         embeddings = await loop.run_in_executor(executor, self.embedding_model.encode, texts)
-        embeddings = np.array(embeddings, dtype="float32")
+        embeddings = self._np.array(embeddings, dtype="float32")
 
         # Add embeddings to FAISS (blocking operation)
-        def _add_embeddings(embeddings: np.ndarray):
+        def _add_embeddings(embeddings):
             self.index.add(embeddings)
             logging.info(f"Added {len(texts)} embeddings to FAISS index.")
 
@@ -141,10 +154,10 @@ class VectorDB:
 
         # Encode the query asynchronously
         query_embedding = await loop.run_in_executor(executor, self.embedding_model.encode, [query])
-        query_embedding = np.array(query_embedding, dtype="float32")
+        query_embedding = self._np.array(query_embedding, dtype="float32")
 
         # Define a blocking function for FAISS search
-        def _search(query_embedding: np.ndarray, k: int):
+        def _search(query_embedding, k: int):
             distances, indices = self.index.search(query_embedding, k)
             return distances, indices
 

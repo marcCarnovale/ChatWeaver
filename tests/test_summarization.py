@@ -1,6 +1,9 @@
 """Unit tests for summarization helper functions."""
 
-from backend.services.summarization_service import extract_code_snippets, alias_code_snippets
+from backend.services.summarization_service import (
+    alias_code_snippets,
+    extract_code_snippets,
+)
 
 
 def test_extract_code_snippets():
