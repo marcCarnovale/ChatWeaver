@@ -1,11 +1,20 @@
 # backend/database/__init__.py
 
-from databases import Database
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy import MetaData, Table, Column, Integer, String, ForeignKey, Text, UniqueConstraint
-from sqlalchemy import Column, Integer, String, ForeignKey, Text, UniqueConstraint, Boolean
 import json
+
+from databases import Database
+from sqlalchemy import (
+    Boolean,
+    Column,
+    ForeignKey,
+    Integer,
+    MetaData,
+    String,
+    Table,
+    Text,
+)
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+from sqlalchemy.orm import sessionmaker
 
 DATABASE_URL = "sqlite+aiosqlite:///./chatweaver.db"
 

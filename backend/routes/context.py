@@ -1,28 +1,27 @@
 # backend/routes/context.py
 
-from fastapi import APIRouter, HTTPException, Depends
-from pydantic import BaseModel, Field
-from typing import Optional, List, TYPE_CHECKING
-
-from backend.services.context_service import retrieve_threads, save_conversation
-from backend.services.model_router import get_response
-from backend.dependencies import get_vector_db
-from embeddings.vector_db import VectorDB
-
-from backend.services.feedback_service import log_feedback, get_feedback_summary
-from backend.models import *
-
 import logging
+from typing import List
 
-from backend.database import database, comments  # Corrected import to include 'comments'
+from fastapi import APIRouter, Depends, HTTPException
+
+from backend.database import (  # Corrected import to include 'comments'
+    comments,
+    database,
+)
+from backend.dependencies import get_vector_db
+from backend.models import (
+    CommentResponse,
+    CreateCommentRequest,
+    GenerateResponseRequest,
+    RetrieveContextRequest,
+)
+from backend.services.context_service import retrieve_threads
+from backend.services.model_router import get_response
+from embeddings.vector_db import VectorDB
 
 # Initialize the router
 router = APIRouter()
-
-# Pydantic Models
-
-if TYPE_CHECKING:
-    CommentResponse.update_forward_refs()
 
 # Endpoint Definitions
 
@@ -151,7 +150,3 @@ async def get_comments(thread_id: int):
     except Exception as e:
         logging.error(f"Error retrieving comments: {e}")
         raise HTTPException(status_code=500, detail="Internal server error.")
-
-# Recursive Pydantic Model Configuration
-if TYPE_CHECKING:
-    CommentResponse.update_forward_refs()

@@ -7,6 +7,7 @@ This module contains the business logic for logging and retrieving feedback on t
 from ..database import database
 from ..database.__init__ import feedback
 
+
 async def log_feedback(context_id: str, action: str) -> bool:
     """
     Log user feedback by incrementing flags or approvals.

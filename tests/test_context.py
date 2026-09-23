@@ -4,7 +4,6 @@ Unit Tests for Context Retrieval
 This file contains test cases for the context retrieval API.
 """
 
-import pytest
 
 
 def test_retrieve_context(client):

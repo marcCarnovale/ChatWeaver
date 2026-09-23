@@ -1,7 +1,8 @@
 # backend/models.py
 
-from pydantic import BaseModel, Field
 from typing import List, Optional
+
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class ThreadCreateRequest(BaseModel):
@@ -11,17 +12,17 @@ class ThreadCreateRequest(BaseModel):
 
 
 class ThreadResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     title: str
     category_id: int
     description: Optional[str] = None
     root_comment_id: Optional[int] = None
 
-    class Config:
-        orm_mode = True
-
-
 class CommentResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     thread_id: int  # Now references 'threads.id'
     parent_id: Optional[int]
@@ -29,10 +30,8 @@ class CommentResponse(BaseModel):
     flags: int
     approvals: int
     model_name: Optional[str] = None
+    hidden: bool = False
     replies: List['CommentResponse'] = Field(default_factory=list)
-
-    class Config:
-        orm_mode = True
 
 
 

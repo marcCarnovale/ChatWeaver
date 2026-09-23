@@ -1,12 +1,17 @@
 # backend/routes/categories.py
 
-from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel
-from typing import List, Optional
-from backend.database import database, categories, threads, comments
 import logging
-import uuid  # Import UUID for generating unique thread IDs
-from backend.models import *
+from typing import List
+
+from fastapi import APIRouter, HTTPException
+
+from backend.database import categories, comments, database, threads
+from backend.models import (
+    CategoryCreateRequest,
+    CategoryResponse,
+    ThreadCreateRequest,
+    ThreadResponse,
+)
 
 router = APIRouter()
 

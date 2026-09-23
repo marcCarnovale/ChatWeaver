@@ -6,6 +6,22 @@ extract_code_for_llm.py
 full_code.txt
 
 # ignore node.js files
-frontend/node_modules
-frontend/package-lock.json
-frontend/yarn.lock
+frontend/node_modules/
+
+# Python and test artifacts
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+
+# Local application state and generated indexes
+*.db
+*.sqlite
+*.sqlite3
+faiss_index.bin
+
+# Build output
+frontend/build/
+dist/
+coverage/

@@ -1,11 +1,11 @@
 # backend/routes/comments.py
 
+import logging
+
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-from typing import Optional
 
-from backend.database import database, comments
-import logging
+from backend.database import comments, database
 
 router = APIRouter()
 

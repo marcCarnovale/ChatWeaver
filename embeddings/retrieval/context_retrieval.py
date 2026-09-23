@@ -6,8 +6,10 @@ Context Retrieval Logic
 This module implements logic for retrieving relevant threads based on user queries.
 """
 
-from typing import List, Dict
+from typing import Dict, List
+
 from embeddings.vector_db import VectorDB
+
 
 async def retrieve_relevant_threads(vector_db: VectorDB, query: str, k: int = 5) -> List[Dict]:
     """

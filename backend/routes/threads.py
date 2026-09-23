@@ -1,15 +1,21 @@
 # backend/routes/threads.py
 
-from fastapi import APIRouter, HTTPException, Depends, Query
-from pydantic import BaseModel, Field
+import asyncio
+import logging
 from typing import List, Optional
-from backend.database import database, threads, comments, embedding_mapping
+
+from fastapi import APIRouter, HTTPException, Query
+
+from backend.database import comments, database, threads
+from backend.models import (
+    CommentCreateRequest,
+    CommentResponse,
+    CreateCommentRequest,
+    GenerateResponseRequest,
+    ThreadResponse,
+)
 from backend.services.model_router import get_response
 from backend.services.summarization_service import summarize_text_chain
-from backend.routes.context import CreateCommentRequest
-import logging
-import asyncio
-from backend.models import *
 
 router = APIRouter()
 
@@ -138,11 +144,6 @@ async def overwrite_comment(comment_id: int, request: CreateCommentRequest):
         raise HTTPException(status_code=500, detail="Failed to overwrite comment.")
 
 
-from fastapi import APIRouter, HTTPException, Depends, Query
-from typing import Optional
-import asyncio
-import logging
-
 @router.post("/threads/{thread_id}/generate-response", response_model=CommentResponse)
 async def generate_response(
     thread_id: int,
@@ -263,4 +264,3 @@ async def fetch_comment_chain(comment_id: int, thread_id: int):
         current_comment_id = comment["parent_id"]
 
     return comment_chain
-

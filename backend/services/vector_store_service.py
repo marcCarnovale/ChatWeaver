@@ -1,10 +1,11 @@
 # backend/services/vector_store_service.py
 
-from openai import OpenAI
+import logging
+import os
+
 import faiss
 import numpy as np
-import os
-import logging
+from openai import OpenAI
 
 client = OpenAI(
     api_key=os.environ.get("OPENAI_API_KEY"),

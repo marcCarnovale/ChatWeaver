@@ -4,7 +4,6 @@ Unit Tests for Feedback API
 This file contains test cases for the feedback API endpoints.
 """
 
-import pytest
 
 
 def test_context_feedback_flag(client):

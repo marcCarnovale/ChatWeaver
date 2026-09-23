@@ -6,10 +6,15 @@ Unit Tests for Embeddings
 This file contains test cases for the embeddings module.
 """
 
-import asyncio
-from embeddings.vector_db import VectorDB
-from backend.database import feedback, database, init_db, save_context
 import pytest
+
+from backend.database import database, feedback, init_db
+from embeddings.vector_db import VectorDB
+
+pytest.importorskip(
+    "faiss",
+    reason="optional embedding integration test requires backend/requirements-ml.txt",
+)
 
 @pytest.fixture(scope="module")
 async def vector_db_fixture():
